@@ -1,0 +1,14 @@
+github.com/evolbioinf/clio v0.0.0-20230620105705-02d07225d27e h1:csibfpCOoKLYtIsw2czC46Vz+I3vMc6TSc4IraeKGH8=
+github.com/evolbioinf/clio v0.0.0-20230620105705-02d07225d27e/go.mod h1:Jh4QPiChVHZHe7fwj+xcSs6kUcQbQVzsd/ht3PIoaaU=
+github.com/evolbioinf/esa v0.0.0-20240208112648-445905ef2b6d h1:8csi45B75ky10mX7lh99rKneCVtdW1ttkIXMBVj84Ts=
+github.com/evolbioinf/esa v0.0.0-20240208112648-445905ef2b6d/go.mod h1:JHdYx+agish2s0bExLYu4sfnkIpQfzQkugwgq+yPXDY=
+github.com/evolbioinf/sus v0.0.0-20230320163303-b6d16dd4ec1f h1:yd1T1dpX1RU9ehKYra/Sg/2TD+1dYMm2roFrapPEO4o=
+github.com/evolbioinf/sus v0.0.0-20230320163303-b6d16dd4ec1f/go.mod h1:SaiLF93OldWIG3wdOZ+aZSNoklGESyYLi5yGQRXONLs=
+github.com/ivantsers/ancs v0.0.0-20240716141341-7a6dd959dbb6 h1:L41EwQORX/PZJ0+pkTCSGD05jkeVzdozhG2hyXX2Cow=
+github.com/ivantsers/ancs v0.0.0-20240716141341-7a6dd959dbb6/go.mod h1:H52yMF1CNDNgl9sW+9pEVsXMcJb7Recs+ZtcHEgv1vs=
+github.com/ivantsers/ancs v0.0.0-20240717083758-a9beebd03d47 h1:s2TKNEAb+U8Sd4YLnWIOk23vzBa7FHXl6SSj+uSPgVY=
+github.com/ivantsers/ancs v0.0.0-20240717083758-a9beebd03d47/go.mod h1:H52yMF1CNDNgl9sW+9pEVsXMcJb7Recs+ZtcHEgv1vs=
+github.com/ivantsers/ancs v0.0.0-20240717090412-ee7328f05409 h1:evaCYfDIV3PErF/zgCbIxoyKU4GGSyXZ8r2aYb5/0c0=
+github.com/ivantsers/ancs v0.0.0-20240717090412-ee7328f05409/go.mod h1:H52yMF1CNDNgl9sW+9pEVsXMcJb7Recs+ZtcHEgv1vs=
+github.com/ivantsers/fasta v0.0.0-20240716130655-4086cb635901 h1:wjIjlC9Zx9Ygdi7GBpRM0y24EfMXcbjlLKR1qOP+atY=
+github.com/ivantsers/fasta v0.0.0-20240716130655-4086cb635901/go.mod h1:WgjYkg+R2oYa26nW+9KiWb1WrNZ0ZN2erE8JAUu/ob4=
