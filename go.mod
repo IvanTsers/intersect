@@ -1,13 +1,16 @@
-module alan
+module intersect
 
-go 1.22.2
+go 1.22.5
+
+toolchain go1.22.6
 
 require (
-	github.com/evolbioinf/clio v0.0.0-20230620105705-02d07225d27e
-	github.com/evolbioinf/esa v0.0.0-20240208112648-445905ef2b6d
-	github.com/evolbioinf/sus v0.0.0-20230320163303-b6d16dd4ec1f
-	github.com/ivantsers/ancs v0.0.0-20240813101225-9d517c1da0b0
-	github.com/ivantsers/fasta v0.0.0-20240716130655-4086cb635901
+	github.com/evolbioinf/clio v0.0.0-20240827074707-cb9ff755a85b
+	github.com/ivantsers/chr v0.0.0-20240830125522-01b7cc586df6
+	github.com/ivantsers/fasta v0.0.0-20240830081231-39b1ecbb3ca0
 )
 
-//replace github.com/ivantsers/ancs => ../ancs
+require (
+	github.com/evolbioinf/esa v0.0.0-20240208112648-445905ef2b6d // indirect
+	github.com/evolbioinf/sus v0.0.0-20230320163303-b6d16dd4ec1f // indirect
+)
