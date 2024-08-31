@@ -1,5 +1,4 @@
 #+begin_export latex
-\section{Implementation}
 The program \ty{intersect} is a demo interface for the \ty{Intersect}
 function of the \ty{chr} package.  It searches homologous regions
 common for a set of target genomes shared by two genomes.
@@ -31,25 +30,24 @@ input. There is one reference (subject) and a folder of other targets
 that are considered queries. The user can set thresholds for the
 shustring p-value and the fraction of intersecting nucleotides.  We
 also declare options for the output formatting, and toggling the
-verbose mode. \textbf{The default options reproduce \ty{phylonium
-    -p}}.
+verbose mode.
 #+end_export
 #+begin_src go <<Declare options>>=
   var optR = flag.String("r", "", "reference sequence")
   var optD = flag.String("d", "", "directory of target sequences")
-  optP := flag.Float64("p", 0.05,
-	  "p-value for a non-random matching shustring length")
+  optP := flag.Float64("p", 0.95,
+	  "threshold p-value for a shustring length")
   optVerb := flag.Bool("verbose", false, "toggle verbose mode")
   optN := flag.Bool("n", false, "print segregation sites (Ns)" +
 	  "in the output sequences")
   optS := flag.Bool("s", false, "print segregation site ranges" +
 	  "in the headers")
   optF := flag.Float64("f", 1.0, "intersection sensitivity threshold")
-  optCleanR := flag.Bool("clean-reference", true,
+  optCleanR := flag.Bool("clean-reference", false,
 	  "remove non-ATGC nucleotides from the reference")
-  optCleanQ := flag.Bool("clean-queries", true,
+  optCleanQ := flag.Bool("clean-queries", false,
 	  "remove non-ATGC nucleotides from the queries")
-  optOneBased := flag.Bool("one-based-output", true,
+  optOneBased := flag.Bool("one-based-output", false,
 	  "print one-based end-exclusive coordinates in the " +
 		  "output headers. The default coordinates " +
 		  "are zero-based end-inclusive.")
@@ -145,11 +143,7 @@ We interpret the parameter flags and create a \ty{Parameters} struct.
   //<<Create a Parameters struct>>
 #+end_src
 #+begin_export latex
-The shustring p-value $p$ is defined for $0 \le p \le 1$. This program
-accepts a p-value of a matching shustring length, corresponding to the
-length of significant match, or minimum anchor length. We convert this
-p-value to a complement p-value of the length of a \ty{random} match,
-as used in \ty{sus.Quantile} within the \ty{Intersect} function.
+The shustring p-value $p$ is defined for $0 \le p \le 1$.
 #+end_export
 #+begin_src go <<Interpret *optP>>=
   if *optP > 1 || *optP < 0 {
@@ -157,7 +151,6 @@ as used in \ty{sus.Quantile} within the \ty{Intersect} function.
 		  "can't use %v as a sensitivity threshold\n", *optF)
 	  os.Exit(1)
   }
-  pval := 1.0 - *optP
 #+end_src
 #+begin_export latex
 The sensitivity threshold $f$ is defined as $0 \l f \le 1$.
@@ -178,7 +171,7 @@ The sensitivity threshold $f$ is defined as $0 \l f \le 1$.
 	  Reference:       referenceContigs,
 	  TargetDir:       *optD,
 	  Threshold:       *optF,
-	  ShustrPval:      pval,
+	  ShustrPval:      *optP,
 	  CleanSubject:    *optCleanR,
 	  CleanQuery:      *optCleanQ,
 	  PrintSegSitePos: *optS,
@@ -206,22 +199,53 @@ statistics in the \ty{stderr}, the rest goes to \ty{stdout}.
   if *optVerb {
 	  //<<Calculate stats>>
 	  fmt.Fprintf(os.Stderr, "# Intersected sequences from %d" + 
-	  " n files\n", numFiles + 1)
+	  " files\n", numFiles + 1)
 	  fmt.Fprintf(os.Stderr,
 		  "#  common homologous region(s): %d\n", len(isc))
 	  fmt.Fprintf(os.Stderr,
 		  "#  intersection's total length: %d\n", totalLen)
+	  if *optS {
+	  fmt.Fprintf(os.Stderr,
+		  "#  number of segregation sites: %d\n", numNs)
+	  }
+
       }
   for _, seq := range(isc) {
 	  fmt.Fprintf(os.Stdout, "%s\n", seq)
   }
 #+end_src
 #+begin_export latex
-We calculate the total length of the intersection.
+We calculate the total length of the intersection and the total number
+of segregation sites \ty{numNs} if the segregation sites are present
+in the headers.
 #+end_export
 #+begin_src go <<Calculate stats>>=
   totalLen := 0
+  numNs := 0
   for _, seq := range(isc) {
 	  totalLen += seq.Length()
+	  if *optS {
+		  //<<Calculate \ty{numNs}>>
+	  }
   }
+#+end_src
+#+begin_export latex
+We search for the total number of segregation sites in the currect
+sequence using a regular expression, then we convert the match to a
+slice of bytes, get rid of the whitespace and semicolon, convert what
+remains to an integer and add it to \ty{numNs}.
+#+end_export
+#+begin_src go <<Calculate \ty{numNs}>>=
+  r, _ := regexp.Compile(` [0-9]+;`)
+  match := r.FindString(seq.Header())
+  matchBytes := []byte(match)
+  num, _ := strconv.Atoi(string(matchBytes[1:len(match)-1]))
+  numNs += num
+#+end_src
+#+begin_export latex
+We import \ty{regexp} and \ty{strconv}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "regexp"
+  "strconv"
 #+end_src
