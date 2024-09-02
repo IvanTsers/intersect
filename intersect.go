@@ -7,8 +7,8 @@ import (
 	"github.com/ivantsers/chr"
 	"github.com/ivantsers/fasta"
 	"os"
-	"regexp"
 	"strconv"
+	"strings"
 )
 
 func main() {
@@ -61,7 +61,8 @@ func main() {
 	}
 	if *optF > 1.0 || *optF <= 0.0 {
 		fmt.Fprintf(os.Stderr,
-			"can't use %v as a sensitivity threshold\n", *optF)
+			"can't use %v as a sensitivity threshold, "+
+				"please use a value in the interval (0,1]", *optF)
 		os.Exit(1)
 	}
 	parameters := chr.Parameters{
@@ -82,11 +83,9 @@ func main() {
 		for _, seq := range isc {
 			totalLen += seq.Length()
 			if *optS {
-				r, _ := regexp.Compile(` [0-9]+;`)
-				match := r.FindString(seq.Header())
-				matchBytes := []byte(match)
-				num, _ := strconv.Atoi(string(matchBytes[1 : len(match)-1]))
-				numNs += num
+				arr := strings.Fields(seq.Header())
+				n, _ := strconv.Atoi(arr[2])
+				numNs += n
 			}
 		}
 		fmt.Fprintf(os.Stderr, "# Intersected sequences from %d"+

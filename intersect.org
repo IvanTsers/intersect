@@ -153,12 +153,13 @@ The shustring p-value $p$ is defined for $0 \le p \le 1$.
   }
 #+end_src
 #+begin_export latex
-The sensitivity threshold $f$ is defined as $0 \l f \le 1$.
+The sensitivity threshold $f$ is defined as $0 < f \le 1$.
 #+end_export
 #+begin_src go <<Interpret *optF>>=
   if *optF > 1.0 || *optF <= 0.0 {
 	  fmt.Fprintf(os.Stderr,
-	     "can't use %v as a sensitivity threshold\n", *optF)
+		  "can't use %v as a sensitivity threshold, " +
+		  "please use a value in the interval (0,1]", *optF)
 	  os.Exit(1)
   }
 #+end_src
@@ -230,22 +231,19 @@ in the headers.
   }
 #+end_src
 #+begin_export latex
-We search for the total number of segregation sites in the currect
-sequence using a regular expression, then we convert the match to a
-slice of bytes, get rid of the whitespace and semicolon, convert what
-remains to an integer and add it to \ty{numNs}.
+We split a header into fields, take the second field as it contains
+the total number of segregation sites, and convert it to an
+integer, which we add to \ty{numNs}.
 #+end_export
 #+begin_src go <<Calculate \ty{numNs}>>=
-  r, _ := regexp.Compile(` [0-9]+;`)
-  match := r.FindString(seq.Header())
-  matchBytes := []byte(match)
-  num, _ := strconv.Atoi(string(matchBytes[1:len(match)-1]))
-  numNs += num
+  arr := strings.Fields(seq.Header())
+  n, _ := strconv.Atoi(arr[2])
+  numNs += n
 #+end_src
 #+begin_export latex
-We import \ty{regexp} and \ty{strconv}.
+We import \ty{strings} and \ty{strconv}.
 #+end_export
 #+begin_src go <<Imports>>=
-  "regexp"
+  "strings"
   "strconv"
 #+end_src

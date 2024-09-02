@@ -6,7 +6,7 @@ toolchain go1.22.6
 
 require (
 	github.com/evolbioinf/clio v0.0.0-20240827074707-cb9ff755a85b
-	github.com/ivantsers/chr v0.0.0-20240830125522-01b7cc586df6
+	github.com/ivantsers/chr v0.0.0-20240902091929-2223a91ad1fa
 	github.com/ivantsers/fasta v0.0.0-20240830081231-39b1ecbb3ca0
 )
 
