@@ -4,7 +4,7 @@ github.com/evolbioinf/esa v0.0.0-20240208112648-445905ef2b6d h1:8csi45B75ky10mX7
 github.com/evolbioinf/esa v0.0.0-20240208112648-445905ef2b6d/go.mod h1:JHdYx+agish2s0bExLYu4sfnkIpQfzQkugwgq+yPXDY=
 github.com/evolbioinf/sus v0.0.0-20230320163303-b6d16dd4ec1f h1:yd1T1dpX1RU9ehKYra/Sg/2TD+1dYMm2roFrapPEO4o=
 github.com/evolbioinf/sus v0.0.0-20230320163303-b6d16dd4ec1f/go.mod h1:SaiLF93OldWIG3wdOZ+aZSNoklGESyYLi5yGQRXONLs=
-github.com/ivantsers/chr v0.0.0-20240902091929-2223a91ad1fa h1:dFzO4K/uFiMkEJ60RAA7C7DKcHD1CrcOb06SC4Xdm0c=
-github.com/ivantsers/chr v0.0.0-20240902091929-2223a91ad1fa/go.mod h1:YVbEqOzmdfVSkbPjt0rshIJ4lB9NeO0FPUpee/YI1O8=
+github.com/ivantsers/chr v0.0.0-20240904113825-8dfc26d67657 h1:1PmJdb9mWXmks3OJ8S0hEuV4oVHsfrU3xBW17/g56d4=
+github.com/ivantsers/chr v0.0.0-20240904113825-8dfc26d67657/go.mod h1:YVbEqOzmdfVSkbPjt0rshIJ4lB9NeO0FPUpee/YI1O8=
 github.com/ivantsers/fasta v0.0.0-20240830081231-39b1ecbb3ca0 h1:HCGcXnpX7lbmLMu2e3vjjhur+cRLULAXLZO0IxhESYQ=
 github.com/ivantsers/fasta v0.0.0-20240830081231-39b1ecbb3ca0/go.mod h1:WgjYkg+R2oYa26nW+9KiWb1WrNZ0ZN2erE8JAUu/ob4=

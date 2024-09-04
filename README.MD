@@ -36,13 +36,12 @@ stan.db
 
 To reproduce results of a `phylonium -p` run, use these parameters:
 
-	intersect -r r.fasta -d t -s -clean-reference -clean-queries -one-based-output
+	intersect -r r.fasta -d t -s -clean-reference -clean-queries
 	
  - the default sensitivity threshold `-f` is 1.0 by default (complete intersection)
- - `-s` prints segregation site total number an positions into headers
+ - `-s` prints the positions of segregating sites into headers
  - `-clean-reference` removes non-ATGC nucleotides from the reference
  - `-clean-queries` removes non-ATGC nucleotides from the queries
- - `-one-based-output` converts headers' coordinates to 1-based end-exclusive
 
 Use `-h` to see all available options. Toggle the `-verbose` mode to
 print some statistics to `stderr`.

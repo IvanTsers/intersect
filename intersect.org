@@ -1,8 +1,8 @@
 #+begin_export latex
 The program \ty{intersect} is a demo interface for the \ty{Intersect}
-function of the \ty{chr} package.  It searches homologous regions
-common for a set of target genomes shared by two genomes.
-\ty{intersect} has hooks for imports and main function.
+function of the \ty{chr} package. The program searches homologous
+regions common to a set of target genomes shared by two genomes.
+\ty{intersect} has hooks for imports and the main function.
 #+end_export
 #+begin_src go <<intersect.go>>=
   package main
@@ -25,32 +25,41 @@ options, run the \ty{Intersect} function, and print the results.
   //<<Print the results>>
 #+end_src
 #+begin_export latex
-The program takes \ty{fasta}-formatted target sequences as
-input. There is one reference (subject) and a folder of other targets
-that are considered queries. The user can set thresholds for the
-shustring p-value and the fraction of intersecting nucleotides.  We
-also declare options for the output formatting, and toggling the
+The program \ty{intersect} takes \ty{fasta}-formatted target sequences
+as input. There is one reference (subject) and a folder of other
+targets that are considered queries. The user can set thresholds for
+the shustring p-value and the fraction of intersecting nucleotides.
+We also declare options for the output formatting, and toggling the
 verbose mode.
 #+end_export
 #+begin_src go <<Declare options>>=
-  var optR = flag.String("r", "", "reference sequence")
-  var optD = flag.String("d", "", "directory of target sequences")
+  optR := flag.String("r", "", "reference sequence")
+
+  optD := flag.String("d", "", "directory of target sequences")
+
   optP := flag.Float64("p", 0.95,
 	  "threshold p-value for a shustring length")
   optVerb := flag.Bool("verbose", false, "toggle verbose mode")
-  optN := flag.Bool("n", false, "print segregation sites (Ns)" +
+
+  optN := flag.Bool("n", false, "print segregating sites (Ns)" +
 	  "in the output sequences")
-  optS := flag.Bool("s", false, "print segregation site ranges" +
+
+  optS := flag.Bool("s", false, "print segregating site ranges" +
 	  "in the headers")
-  optF := flag.Float64("f", 1.0, "intersection sensitivity threshold")
+
+  optF := flag.Float64("f", 1.0,
+	  "intersection sensitivity threshold")
+
   optCleanR := flag.Bool("clean-reference", false,
 	  "remove non-ATGC nucleotides from the reference")
+
   optCleanQ := flag.Bool("clean-queries", false,
 	  "remove non-ATGC nucleotides from the queries")
-  optOneBased := flag.Bool("one-based-output", false,
-	  "print one-based end-exclusive coordinates in the " +
+
+  optZeroBased := flag.Bool("zero-based-output", false,
+	  "print zero-based, end-exclusive coordinates in the " +
 		  "output headers. The default coordinates " +
-		  "are zero-based end-inclusive.")
+		  "are one-based, end-exclusive.")
 #+end_src
 #+begin_export latex
 We improt \ty{flag}.
@@ -84,7 +93,8 @@ reference. Then we read the reference's contigs and set parameters for
   numFiles := 0
   //<<Count the number of target genomes>>
   if numFiles < 1 {
-	  fmt.Fprintf(os.Stderr, "the target dir contains no files\n")
+	  fmt.Fprintf(os.Stderr,
+		  "the target dir contains no files\n")
 	  os.Exit(1)
   }
   //<<Check the reference>>
@@ -115,10 +125,11 @@ We check if the reference has been specified. If so, we check if it is
 duplicated in the target directory.
 #+end_export
 #+begin_src go <<Check the reference>>=
-   if *optR == "" {
-	   fmt.Fprintf(os.Stderr, "please specify the reference sequence\n")
-	   os.Exit(1)
-   }
+  if *optR == "" {
+	  fmt.Fprintf(os.Stderr,
+		  "please specify the reference sequence\n")
+	  os.Exit(1)
+  }
 #+end_src
 #+begin_export latex
 We read the reference's contigs from the specified file.
@@ -148,7 +159,8 @@ The shustring p-value $p$ is defined for $0 \le p \le 1$.
 #+begin_src go <<Interpret *optP>>=
   if *optP > 1 || *optP < 0 {
 	  fmt.Fprintf(os.Stderr,
-		  "can't use %v as a sensitivity threshold\n", *optF)
+		  "can't use %v as a sensitivity threshold\n",
+		  *optF)
 	  os.Exit(1)
   }
 #+end_src
@@ -159,13 +171,14 @@ The sensitivity threshold $f$ is defined as $0 < f \le 1$.
   if *optF > 1.0 || *optF <= 0.0 {
 	  fmt.Fprintf(os.Stderr,
 		  "can't use %v as a sensitivity threshold, " +
-		  "please use a value in the interval (0,1]", *optF)
+			  "please use a value in the interval (0,1]",
+		  *optF)
 	  os.Exit(1)
   }
 #+end_src
 #+begin_export latex
- We initialize and populate a \ty{Parameters} struct with the
- interpreted parameters
+We initialize and populate a \ty{Parameters} struct with the
+interpreted parameters.
 #+end_export
 #+begin_src go <<Create a Parameters struct>>=
   parameters := chr.Parameters{
@@ -177,7 +190,7 @@ The sensitivity threshold $f$ is defined as $0 < f \le 1$.
 	  CleanQuery:      *optCleanQ,
 	  PrintSegSitePos: *optS,
 	  PrintN:          *optN,
-	  PrintOneBased:   *optOneBased,
+	  PrintOneBased:   !*optZeroBased,
   }
 #+end_src
 #+begin_export latex
@@ -199,15 +212,22 @@ statistics in the \ty{stderr}, the rest goes to \ty{stdout}.
 #+begin_src go <<Print the results>>=
   if *optVerb {
 	  //<<Calculate stats>>
-	  fmt.Fprintf(os.Stderr, "# Intersected sequences from %d" + 
-	  " files\n", numFiles + 1)
 	  fmt.Fprintf(os.Stderr,
-		  "#  common homologous region(s): %d\n", len(isc))
+		  "# Intersected sequences from %d" + 
+		  " files\n", numFiles + 1)
+	
 	  fmt.Fprintf(os.Stderr,
-		  "#  intersection's total length: %d\n", totalLen)
+		  "#  common homologous region(s): %d\n",
+		  len(isc))
+	
+	  fmt.Fprintf(os.Stderr,
+		  "#  intersection's total length: %d\n",
+		  totalLen)
+	
 	  if *optS {
 	  fmt.Fprintf(os.Stderr,
-		  "#  number of segregation sites: %d\n", numNs)
+		  "#  number of segregating sites: %d\n",
+		  numNs)
 	  }
 
       }
@@ -217,7 +237,7 @@ statistics in the \ty{stderr}, the rest goes to \ty{stdout}.
 #+end_src
 #+begin_export latex
 We calculate the total length of the intersection and the total number
-of segregation sites \ty{numNs} if the segregation sites are present
+of segregating sites \ty{numNs} if the segregating sites are present
 in the headers.
 #+end_export
 #+begin_src go <<Calculate stats>>=
@@ -232,7 +252,7 @@ in the headers.
 #+end_src
 #+begin_export latex
 We split a header into fields, take the second field as it contains
-the total number of segregation sites, and convert it to an
+the total number of segregating sites, and convert it to an
 integer, which we add to \ty{numNs}.
 #+end_export
 #+begin_src go <<Calculate \ty{numNs}>>=
