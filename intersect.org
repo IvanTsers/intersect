@@ -41,7 +41,7 @@ verbose mode.
 	  "threshold p-value for a shustring length")
   optVerb := flag.Bool("verbose", false, "toggle verbose mode")
 
-  optN := flag.Bool("n", false, "print segregating sites (Ns)" +
+  optN := flag.Bool("n", false, "print segregating sites (Ns) " +
 	  "in the output sequences")
 
   optS := flag.Bool("s", false, "print segregating site ranges" +
@@ -59,7 +59,7 @@ verbose mode.
   optZeroBased := flag.Bool("zero-based-output", false,
 	  "print zero-based, end-exclusive coordinates in the " +
 		  "output headers. The default coordinates " +
-		  "are one-based, end-exclusive.")
+		  "are one-based, end-inclusive.")
 #+end_src
 #+begin_export latex
 We improt \ty{flag}.

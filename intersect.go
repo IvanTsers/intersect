@@ -20,7 +20,7 @@ func main() {
 		"threshold p-value for a shustring length")
 	optVerb := flag.Bool("verbose", false, "toggle verbose mode")
 
-	optN := flag.Bool("n", false, "print segregating sites (Ns)"+
+	optN := flag.Bool("n", false, "print segregating sites (Ns) "+
 		"in the output sequences")
 
 	optS := flag.Bool("s", false, "print segregating site ranges"+
@@ -38,7 +38,7 @@ func main() {
 	optZeroBased := flag.Bool("zero-based-output", false,
 		"print zero-based, end-exclusive coordinates in the "+
 			"output headers. The default coordinates "+
-			"are one-based, end-exclusive.")
+			"are one-based, end-inclusive.")
 	u := "intersect [option]..."
 	p := "Find common homologous regions in a set of genomes"
 	e := "intersect -r subject.fasta -d query_dir"
