@@ -8,5 +8,7 @@ github.com/ivantsers/chr v0.0.0-20240909140258-bcdd9068daca h1:VNvpGUY97sspbESqR
 github.com/ivantsers/chr v0.0.0-20240909140258-bcdd9068daca/go.mod h1:YVbEqOzmdfVSkbPjt0rshIJ4lB9NeO0FPUpee/YI1O8=
 github.com/ivantsers/chr v0.0.0-20241011122037-be1ec54f4038 h1:TTTwy3W64fajBN3G3Hm+1q++XGTK/Tk/iUcFfMfDLQA=
 github.com/ivantsers/chr v0.0.0-20241011122037-be1ec54f4038/go.mod h1:YVbEqOzmdfVSkbPjt0rshIJ4lB9NeO0FPUpee/YI1O8=
+github.com/ivantsers/chr v0.0.0-20241018092444-40b3e33e5397 h1:z1moZUPF4dy/ep7v8TIJ7opqfn7DjeGUZByClpNiSu8=
+github.com/ivantsers/chr v0.0.0-20241018092444-40b3e33e5397/go.mod h1:YVbEqOzmdfVSkbPjt0rshIJ4lB9NeO0FPUpee/YI1O8=
 github.com/ivantsers/fasta v0.0.0-20240830081231-39b1ecbb3ca0 h1:HCGcXnpX7lbmLMu2e3vjjhur+cRLULAXLZO0IxhESYQ=
 github.com/ivantsers/fasta v0.0.0-20240830081231-39b1ecbb3ca0/go.mod h1:WgjYkg+R2oYa26nW+9KiWb1WrNZ0ZN2erE8JAUu/ob4=
