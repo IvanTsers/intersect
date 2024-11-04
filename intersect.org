@@ -33,33 +33,33 @@ We also declare options for the output formatting, and toggling the
 verbose mode.
 #+end_export
 #+begin_src go <<Declare options>>=
-  optR := flag.String("r", "", "reference sequence")
+    optR := flag.String("r", "", "reference sequence")
 
-  optD := flag.String("d", "", "directory of target sequences")
+    optD := flag.String("d", "", "directory of target sequences")
 
-  optP := flag.Float64("p", 0.95,
-	  "threshold p-value for a shustring length")
-  optVerb := flag.Bool("verbose", false, "toggle verbose mode")
+    optP := flag.Float64("p", 0.975,
+	    "threshold p-value for a shustring length")
+    optVerb := flag.Bool("verbose", false, "toggle verbose mode")
 
-  optN := flag.Bool("n", false, "print segregating sites (Ns) " +
-	  "in the output sequences")
+    optN := flag.Bool("n", false, "print segregating sites (Ns) " +
+	    "in the output sequences")
 
-  optS := flag.Bool("s", false, "print segregating site ranges" +
-	  "in the headers")
+    optS := flag.Bool("s", false, "print segregating site " + 
+	    "positions in the output headers")
 
-  optF := flag.Float64("f", 1.0,
-	  "intersection sensitivity threshold")
+    optF := flag.Float64("f", 1.0,
+	    "intersection sensitivity threshold")
 
-  optCleanR := flag.Bool("clean-reference", false,
-	  "remove non-ATGC nucleotides from the reference")
+    optCleanR := flag.Bool("clean-reference", false,
+	    "remove non-ATGC nucleotides from the reference")
 
-  optCleanQ := flag.Bool("clean-queries", false,
-	  "remove non-ATGC nucleotides from the queries")
+    optCleanQ := flag.Bool("clean-queries", false,
+	    "remove non-ATGC nucleotides from the queries")
 
-  optZeroBased := flag.Bool("zero-based-output", false,
-	  "print zero-based, end-exclusive coordinates in the " +
-		  "output headers. The default coordinates " +
-		  "are one-based, end-inclusive.")
+    optZeroBased := flag.Bool("zero-based-output", false,
+	    "print zero-based, end-exclusive coordinates in the " +
+		    "output headers. The default coordinates " +
+		    "are one-based, end-inclusive.")
 #+end_src
 #+begin_export latex
 We improt \ty{flag}.

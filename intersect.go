@@ -16,15 +16,15 @@ func main() {
 
 	optD := flag.String("d", "", "directory of target sequences")
 
-	optP := flag.Float64("p", 0.95,
+	optP := flag.Float64("p", 0.975,
 		"threshold p-value for a shustring length")
 	optVerb := flag.Bool("verbose", false, "toggle verbose mode")
 
 	optN := flag.Bool("n", false, "print segregating sites (Ns) "+
 		"in the output sequences")
 
-	optS := flag.Bool("s", false, "print segregating site ranges"+
-		"in the headers")
+	optS := flag.Bool("s", false, "print segregating site "+
+		"positions in the output headers")
 
 	optF := flag.Float64("f", 1.0,
 		"intersection sensitivity threshold")
