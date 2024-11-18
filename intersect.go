@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/evolbioinf/clio"
 	"github.com/ivantsers/chr"
-	"github.com/ivantsers/fasta"
+	"github.com/ivantsers/fastautils"
 	"os"
 	"strconv"
 	"strings"
@@ -63,7 +63,7 @@ func main() {
 		os.Exit(1)
 	}
 	f, _ := os.Open(*optR)
-	referenceContigs := fasta.ReadAll(f)
+	referenceContigs := fastautils.ReadAll(f)
 	f.Close()
 	if *optP > 1 || *optP < 0 {
 		fmt.Fprintf(os.Stderr,
@@ -94,7 +94,7 @@ func main() {
 		totalLen := 0
 		numNs := 0
 		for _, seq := range isc {
-			totalLen += seq.Length()
+			totalLen += len(seq.Data())
 			if *optS {
 				arr := strings.Fields(seq.Header())
 				n, _ := strconv.Atoi(arr[2])

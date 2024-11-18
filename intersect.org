@@ -136,14 +136,14 @@ We read the reference's contigs from the specified file.
 #+end_export
 #+begin_src go <<Read reference's contigs>>=
   f, _ := os.Open(*optR)
-  referenceContigs := fasta.ReadAll(f)
+  referenceContigs := fastautils.ReadAll(f)
   f.Close()
 #+end_src
 #+begin_export latex
-We import \ty{fasta}.
+We import \ty{fastautils}.
 #+end_export
 #+begin_src go <<Imports>>=
-  "github.com/ivantsers/fasta"
+  "github.com/ivantsers/fastautils"
 #+end_src
 #+begin_export latex
 We interpret the parameter flags and create a \ty{Parameters} struct.
@@ -244,7 +244,7 @@ in the headers.
   totalLen := 0
   numNs := 0
   for _, seq := range(isc) {
-	  totalLen += seq.Length()
+	  totalLen += len(seq.Data())
 	  if *optS {
 		  //<<Calculate \ty{numNs}>>
 	  }
