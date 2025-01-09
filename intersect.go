@@ -39,6 +39,8 @@ func main() {
 		"print zero-based, end-exclusive coordinates in the "+
 			"output headers. The default coordinates "+
 			"are one-based, end-inclusive.")
+
+	optT := flag.Int("t", 1, "number of threads")
 	u := "intersect [option]..."
 	p := "Find common homologous regions in a set of genomes"
 	e := "intersect -r subject.fasta -d query_dir"
@@ -88,6 +90,7 @@ func main() {
 		PrintSegSitePos: *optS,
 		PrintN:          *optN,
 		PrintOneBased:   !*optZeroBased,
+		NumThreads:      *optT,
 	}
 	isc := chr.Intersect(parameters)
 	if *optVerb {

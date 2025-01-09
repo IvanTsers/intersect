@@ -30,36 +30,38 @@ as input. There is one reference (subject) and a folder of other
 targets that are considered queries. The user can set thresholds for
 the shustring p-value and the fraction of intersecting nucleotides.
 We also declare options for the output formatting, and toggling the
-verbose mode.
+verbose mode. Finally, one can set the number of threads.
 #+end_export
 #+begin_src go <<Declare options>>=
-    optR := flag.String("r", "", "reference sequence")
+  optR := flag.String("r", "", "reference sequence")
 
-    optD := flag.String("d", "", "directory of target sequences")
+  optD := flag.String("d", "", "directory of target sequences")
 
-    optP := flag.Float64("p", 0.975,
-	    "threshold p-value for a shustring length")
-    optVerb := flag.Bool("verbose", false, "toggle verbose mode")
+  optP := flag.Float64("p", 0.975,
+	  "threshold p-value for a shustring length")
+  optVerb := flag.Bool("verbose", false, "toggle verbose mode")
 
-    optN := flag.Bool("n", false, "print segregating sites (Ns) " +
-	    "in the output sequences")
+  optN := flag.Bool("n", false, "print segregating sites (Ns) " +
+	  "in the output sequences")
 
-    optS := flag.Bool("s", false, "print segregating site " + 
-	    "positions in the output headers")
+  optS := flag.Bool("s", false, "print segregating site " + 
+	  "positions in the output headers")
 
-    optF := flag.Float64("f", 1.0,
-	    "intersection sensitivity threshold")
+  optF := flag.Float64("f", 1.0,
+	  "intersection sensitivity threshold")
 
-    optCleanR := flag.Bool("clean-reference", false,
-	    "remove non-ATGC nucleotides from the reference")
+  optCleanR := flag.Bool("clean-reference", false,
+	  "remove non-ATGC nucleotides from the reference")
 
-    optCleanQ := flag.Bool("clean-queries", false,
-	    "remove non-ATGC nucleotides from the queries")
+  optCleanQ := flag.Bool("clean-queries", false,
+	  "remove non-ATGC nucleotides from the queries")
 
-    optZeroBased := flag.Bool("zero-based-output", false,
-	    "print zero-based, end-exclusive coordinates in the " +
-		    "output headers. The default coordinates " +
-		    "are one-based, end-inclusive.")
+  optZeroBased := flag.Bool("zero-based-output", false,
+	  "print zero-based, end-exclusive coordinates in the " +
+		  "output headers. The default coordinates " +
+		  "are one-based, end-inclusive.")
+
+  optT := flag.Int("t", 1, "number of threads")
 #+end_src
 #+begin_export latex
 We improt \ty{flag}.
@@ -191,6 +193,7 @@ interpreted parameters.
 	  PrintSegSitePos: *optS,
 	  PrintN:          *optN,
 	  PrintOneBased:   !*optZeroBased,
+	  NumThreads:      *optT,
   }
 #+end_src
 #+begin_export latex

@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/evolbioinf/clio v0.0.0-20240827074707-cb9ff755a85b
-	github.com/ivantsers/chr v0.0.0-20241118144551-5f2b65c51950
+	github.com/ivantsers/chr v0.0.0-20250109135302-34f03fbc373c
 	github.com/ivantsers/fastautils v0.0.0-20241118142913-f5f2f9b175e5
 )
 
