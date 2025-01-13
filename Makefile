@@ -1,17 +1,19 @@
-EXE = intersect
+progs = intersect ref2query
 
-all: $(EXE)
+all:
 
-$(EXE): $(EXE).go
-	go build $(EXE).go
-$(EXE).go: $(EXE).org
-	bash scripts/org2nw $(EXE).org | notangle -R$(EXE).go | gofmt > $(EXE).go
-
-.PHONY: doc clean
+	test -d bin || mkdir bin
+		for prog in $(progs); do \
+			make -C $$prog; \
+			cp $$prog/$$prog bin; \
+		done
 
 doc:
-	make -C doc
+	make -c doc
 
 clean:
-	rm -f $(EXE) *.go
-	make clean -C doc
+
+	for prog in $(progs) doc; do \
+		make clean -C $$prog; \
+	done
+	rm -f bin/*
