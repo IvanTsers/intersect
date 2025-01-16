@@ -1,0 +1,272 @@
+#+begin_export latex
+The program \ty{intersect} is a demo interface for the \ty{Intersect}
+function of the \ty{chr} package. The program searches homologous
+regions common to a set of target genomes shared by two genomes.
+\ty{intersect} has hooks for imports and the main function.
+#+end_export
+#+begin_src go <<intersect.go>>=
+  package main
+  import (
+	  //<<Imports>>
+  )
+  func main() {
+	  //<<Main function>>
+  }
+#+end_src
+#+begin_export latex
+In the main function, we declare the options, set the usage, parse the
+options, run the \ty{Intersect} function, and print the results.
+#+end_export
+#+begin_src go <<Main function>>=
+  //<<Declare options>>
+  //<<Set usage>>
+  //<<Parse options>>
+  //<<Run \ty{Intersect}>>
+  //<<Print the results>>
+#+end_src
+#+begin_export latex
+The program \ty{intersect} takes \ty{fasta}-formatted target sequences
+as input. There is one reference (subject) and a folder of other
+targets that are considered queries. The user can set thresholds for
+the shustring p-value and the fraction of intersecting nucleotides.
+We also declare options for the output formatting, and toggling the
+verbose mode. Finally, one can set the number of threads.
+#+end_export
+#+begin_src go <<Declare options>>=
+  optR := flag.String("r", "", "reference sequence")
+
+  optD := flag.String("d", "", "directory of target sequences")
+
+  optP := flag.Float64("p", 0.975,
+	  "threshold p-value for a shustring length")
+  optVerb := flag.Bool("verbose", false, "toggle verbose mode")
+
+  optN := flag.Bool("n", false, "print segregating sites (Ns) " +
+	  "in the output sequences")
+
+  optS := flag.Bool("s", false, "print segregating site " + 
+	  "positions in the output headers")
+
+  optF := flag.Float64("f", 1.0,
+	  "intersection sensitivity threshold")
+
+  optCleanR := flag.Bool("clean-reference", false,
+	  "remove non-ATGC nucleotides from the reference")
+
+  optCleanQ := flag.Bool("clean-queries", false,
+	  "remove non-ATGC nucleotides from the queries")
+
+  optZeroBased := flag.Bool("zero-based-output", false,
+	  "print zero-based, end-exclusive coordinates in the " +
+		  "output headers. The default coordinates " +
+		  "are one-based, end-inclusive.")
+
+  optT := flag.Int("t", 1, "number of threads")
+#+end_src
+#+begin_export latex
+We improt \ty{flag}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "flag"
+#+end_src
+#+begin_export latex
+The usage consists of three statements. The actual usage statement, an
+explanation of the program’s purpose, and an example command.
+#+end_export
+#+begin_src go <<Set usage>>=
+  u := "intersect [option]..."
+  p := "Find common homologous regions in a set of genomes"
+  e := "intersect -r subject.fasta -d query_dir"
+  clio.Usage(u, p, e)
+#+end_src
+#+begin_export latex
+We import \ty{clio}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "github.com/evolbioinf/clio"
+#+end_src
+#+begin_export latex
+We parse the options and check the number of input files and the
+reference. Then we read the reference's contigs and set parameters for
+\ty{Intersect}.
+#+end_export
+#+begin_src go <<Parse options>>=
+  flag.Parse()
+  numFiles := 0
+  //<<Count the number of target genomes>>
+  if numFiles < 1 {
+	  fmt.Fprintf(os.Stderr,
+		  "the target dir contains no files\n")
+	  os.Exit(1)
+  }
+  //<<Check the reference>>
+  //<<Read reference's contigs>>
+  //<<Set parameters>>
+#+end_src
+#+begin_export latex
+We import \ty{fmt} and \ty{os}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "fmt"
+  "os"
+#+end_src
+#+begin_export latex
+We access the target directory entries and count them.
+#+end_export
+#+begin_src go <<Count the number of target genomes>>=
+  dirEntries, err := os.ReadDir(*optD)
+  if err != nil {
+	  fmt.Fprintf(os.Stderr,
+		  "error reading %v: %v\n", *optD, err)
+	  os.Exit(1)
+  }
+  numFiles = len(dirEntries)
+#+end_src
+#+begin_export latex
+We check if the reference has been specified. If so, we check if it is
+duplicated in the target directory.
+#+end_export
+#+begin_src go <<Check the reference>>=
+  if *optR == "" {
+	  fmt.Fprintf(os.Stderr,
+		  "please specify the reference sequence\n")
+	  os.Exit(1)
+  }
+#+end_src
+#+begin_export latex
+We read the reference's contigs from the specified file.
+#+end_export
+#+begin_src go <<Read reference's contigs>>=
+  f, _ := os.Open(*optR)
+  referenceContigs := fastautils.ReadAll(f)
+  f.Close()
+#+end_src
+#+begin_export latex
+We import \ty{fastautils}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "github.com/ivantsers/fastautils"
+#+end_src
+#+begin_export latex
+We interpret the parameter flags and create a \ty{Parameters} struct.
+#+end_export
+#+begin_src go <<Set parameters>>=
+  //<<Interpret *optP>>
+  //<<Interpret *optF>>
+  //<<Create a Parameters struct>>
+#+end_src
+#+begin_export latex
+The shustring p-value $p$ is defined for $0 \le p \le 1$.
+#+end_export
+#+begin_src go <<Interpret *optP>>=
+  if *optP > 1 || *optP < 0 {
+	  fmt.Fprintf(os.Stderr,
+		  "can't use %v as a sensitivity threshold\n",
+		  *optF)
+	  os.Exit(1)
+  }
+#+end_src
+#+begin_export latex
+The sensitivity threshold $f$ is defined as $0 < f \le 1$.
+#+end_export
+#+begin_src go <<Interpret *optF>>=
+  if *optF > 1.0 || *optF <= 0.0 {
+	  fmt.Fprintf(os.Stderr,
+		  "can't use %v as a sensitivity threshold, " +
+			  "please use a value in the interval (0,1]",
+		  *optF)
+	  os.Exit(1)
+  }
+#+end_src
+#+begin_export latex
+We initialize and populate a \ty{Parameters} struct with the
+interpreted parameters.
+#+end_export
+#+begin_src go <<Create a Parameters struct>>=
+  parameters := chr.Parameters{
+	  Reference:       referenceContigs,
+	  TargetDir:       *optD,
+	  Threshold:       *optF,
+	  ShustrPval:      *optP,
+	  CleanSubject:    *optCleanR,
+	  CleanQuery:      *optCleanQ,
+	  PrintSegSitePos: *optS,
+	  PrintN:          *optN,
+	  PrintOneBased:   !*optZeroBased,
+	  NumThreads:      *optT,
+  }
+#+end_src
+#+begin_export latex
+We import \ty{chr}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "github.com/ivantsers/chr"
+#+end_src
+#+begin_export latex
+We run the \ty{Intersect} function with our parameters.
+#+end_export
+#+begin_src go <<Run \ty{Intersect}>>=
+  isc := chr.Intersect(parameters)
+#+end_src
+#+begin_export latex
+We print the result. If the verbose mode is toggled, we report some
+statistics in the \ty{stderr}, the rest goes to \ty{stdout}.
+#+end_export
+#+begin_src go <<Print the results>>=
+  if *optVerb {
+	  //<<Calculate stats>>
+	  fmt.Fprintf(os.Stderr,
+		  "# Intersected sequences from %d" + 
+		  " files\n", numFiles + 1)
+	
+	  fmt.Fprintf(os.Stderr,
+		  "#  common homologous region(s): %d\n",
+		  len(isc))
+	
+	  fmt.Fprintf(os.Stderr,
+		  "#  intersection's total length: %d\n",
+		  totalLen)
+	
+	  if *optS {
+	  fmt.Fprintf(os.Stderr,
+		  "#  number of segregating sites: %d\n",
+		  numNs)
+	  }
+
+      }
+  for _, seq := range(isc) {
+	  fmt.Fprintf(os.Stdout, "%s\n", seq)
+  }
+#+end_src
+#+begin_export latex
+We calculate the total length of the intersection and the total number
+of segregating sites \ty{numNs} if the segregating sites are present
+in the headers.
+#+end_export
+#+begin_src go <<Calculate stats>>=
+  totalLen := 0
+  numNs := 0
+  for _, seq := range(isc) {
+	  totalLen += len(seq.Data())
+	  if *optS {
+		  //<<Calculate \ty{numNs}>>
+	  }
+  }
+#+end_src
+#+begin_export latex
+We split a header into fields, take the second field as it contains
+the total number of segregating sites, and convert it to an
+integer, which we add to \ty{numNs}.
+#+end_export
+#+begin_src go <<Calculate \ty{numNs}>>=
+  arr := strings.Fields(seq.Header())
+  n, _ := strconv.Atoi(arr[2])
+  numNs += n
+#+end_src
+#+begin_export latex
+We import \ty{strings} and \ty{strconv}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "strings"
+  "strconv"
+#+end_src
