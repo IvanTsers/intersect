@@ -41,8 +41,9 @@ input: a reference that is the output of \texttt{intersect}, and a
 query, which is ideally one of the target sequences used to calculate
 the intersection. The user can specify the length of the referece's
 prefix to include for exact matching, set the maximum number of
-threads, allow matching short regions, and toggle the output format to
-printing found sequences.
+threads, and allow matching short regions. As an alternative, the user
+can opt using entire regions for exact matching. Finally, the user can
+toggle the output format to printing found sequences.
 #+end_export
 #+begin_src go <<Declare options>>=
   optR := flag.String("r", "", "reference sequence")
@@ -54,6 +55,9 @@ printing found sequences.
 
   optShort := flag.Bool("short", false,
 	  "allow regions not longer than l")
+
+  optC := flag.Bool("c", false,
+	  "use complete regions for exact matching")
 
   optS := flag.Bool("s", false, "print sequences in the output")
 
@@ -359,17 +363,21 @@ first field of the header, and store the coordinates as two variables.
   }
 #+end_src
 #+begin_export latex
-We copy first \texttt{l} nucleotides of the reference as specified in
-\texttt{optL} flag. If the reference is not longer than that and the
-user allows reporting short regions, we just take whatever we have. If
-short regions are not allowed, we return early. We add wildcards for
-mutations to our pattern once (and if) we have it.
+If the user has opted to use complete reference regions (the flag
+\texttt{-c}), we use the entire sequence as a pattern. If it's not the
+case, we copy first \texttt{l} nucleotides of the reference as
+specified in \texttt{optL} flag. If the reference is not longer than
+that and the user allows reporting short regions, we just take
+whatever we have. If short regions are not allowed, we return
+early. We add wildcards for mutations to our pattern once (and if) we
+have it.
 #+end_export
 #+begin_src go <<Construct a pattern>>=
   refseqLen := len(refseq.Data())
   var pattern []byte
-
-  if refseqLen > *optL {
+  if *optC {
+	  pattern = refseq.Data()
+  } else if refseqLen > *optL {
 	  pattern = refseq.Data()[:*optL]
   } else if *optShort {
 	  pattern = refseq.Data()
@@ -467,16 +475,35 @@ We fill the fields of the resulting \texttt{region} struct.
   reg.onReverseStrand = isReverse
 #+end_src
 #+begin_export latex
-If the user has toggled the \texttt{-s} flag, we proceed with printing
-the actual sequences. By default, we construct and print a table of
-the coordinates
+We sort the regions before printing. If the user has toggled the
+\texttt{-s} flag, we proceed with printing the actual sequences. By
+default, we construct and print a table of the coordinates
 #+end_export
 #+begin_src go <<Print the results>>=
+  //<<Sort the regions>>
   if *optS {
 	  //<<Print sequences>>
   } else {
 	  //<<Print coordinates>>
   }
+#+end_src
+#+begin_export latex
+We sort the regions by reference contigs' names and region start
+coordinates using the \texttt{sort.Slice} function.
+#+end_export
+#+begin_src go <<Sort the regions>>=
+  sort.Slice(regions, func(i, j int) bool {
+	  if regions[i].rh != regions[j].rh {
+		  return regions[i].rh < regions[j].rh
+	  }
+	  return regions[i].rs < regions[j].rs
+  })
+#+end_src
+#+begin_export latex
+We import \texttt{sort}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "sort"
 #+end_src
 #+begin_export latex
 We initialize a slice of \texttt{fasta} sequences, then iterate over
