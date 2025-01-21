@@ -1,4 +1,5 @@
 #+begin_export latex
+\subsection{Introduction}
 The program \texttt{ref2query} takes a \texttt{fasta} file of shared
 homologous regions (an \textit{intersection}) as input, with the
 coordinates of segregating sites included in the headers. This file is
@@ -10,18 +11,552 @@ to the length of the homologous region. An exact matching anchor is a
 prefix of the intersection that ends before the first segregating
 site.
 
-\texttt{ref2query} includes hooks for imports, auxiliary functions,
-and the main function.
+\texttt{ref2query} includes hooks for import and the main function.
 #+end_export
 #+begin_src go <<ref2query.go>>=
   package main
-  import(
+  import (
 	  //<<Imports>>
   )
-
-  //<<Auxillary functions>>
-
+  //<<Data types>>
   func main() {
 	  //<<Main function>>
   }
+#+end_src
+#+begin_export latex
+\subsection{Implementation}
+In the main function, we declare options, set usage, parse the
+options, search for regions, and print the results.
+#+end_export
+#+begin_src go <<Main function>>=
+  //<<Declare options>>
+  //<<Set usage>>
+  //<<Parse the options>>
+  //<<Perform the search>>
+  //<<Print the results>>
+#+end_src
+#+begin_export latex
+The program accepts two \texttt{fasta}-formatted sequences as an
+input: a reference that is the output of \texttt{intersect}, and a
+query, which is ideally one of the target sequences used to calculate
+the intersection. The user can specify the length of the referece's
+prefix to include for exact matching, set the maximum number of
+threads, allow matching short regions, and toggle the output format to
+printing found sequences.
+#+end_export
+#+begin_src go <<Declare options>>=
+  optR := flag.String("r", "", "reference sequence")
+
+  optQ := flag.String("q", "", "query sequence")
+
+  optL := flag.Int("l", 15,
+	  "length of a prefix anchor for matching")
+
+  optShort := flag.Bool("short", false,
+	  "allow regions not longer than l")
+
+  optS := flag.Bool("s", false, "print sequences in the output")
+
+  optT := flag.Int("t", runtime.NumCPU(),
+	  "maximum number of available threads")
+#+end_src
+#+begin_export latex
+We import \texttt{flag} and \texttt{runtime}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "flag"
+  "runtime"
+#+end_src
+#+begin_export latex
+The usage consists of three statements: the actual usage statement, an
+explanation of the program’s purpose, and an example command.
+#+end_export
+#+begin_src go <<Set usage>>=
+  u := "ref2query [option]..."
+  p := "Find reference homologous regions " +
+	  "of the intersection in a query"
+  e := "ref2query -r intersection.fasta -q query.fasta"
+  clio.Usage(u, p, e)
+#+end_src
+#+begin_export latex
+We import \texttt{clio}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "github.com/evolbioinf/clio"
+#+end_src
+#+begin_export latex
+We parse the options and check the user's input. We exit if either
+query or reference are missing. Then we access the values of
+\texttt{-l} and \texttt{-t}. We exit if the values of either is zero
+or less to avoid a panic. We also set the maximum number of threads.
+#+end_export
+#+begin_src go <<Parse the options>>=
+  flag.Parse()
+
+  if *optQ == "" || *optR == "" {
+	  fmt.Fprintf(os.Stderr,
+		  "please specify a reference and a query\n")
+	  os.Exit(1)
+  }
+
+  if *optL < 1 {
+	  fmt.Fprintf(os.Stderr,
+		  "cannot use %v as the number of matches\n",
+		  *optL)
+	  os.Exit(1)
+  }
+
+
+  if *optT < 1 {
+	  fmt.Fprintf(os.Stderr,
+		  "cannot use %v as the number of threads\n",
+		  *optT)
+	  os.Exit(1)
+  }
+
+  runtime.GOMAXPROCS(*optT)
+#+end_src
+#+begin_export latex
+We import \texttt{fmt} and \texttt{os}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "fmt"
+  "os"
+#+end_src
+#+begin_export latex
+We create a data struct \texttt{region} to store regions found in a
+query. The struct includes:
+
+\begin{enumerate}
+  \itemsep0em
+  \item a header of the sequence (contig) \texttt{rh}, to which the
+    region belongs in the reference;
+  \item start of the region in the reference \texttt{rs};
+  \item end of the region in the reference \texttt{re};
+  \item a header of the sequence (contig) \texttt{qh}, to which the
+    region belongs in the query;
+  \item start of the region in the query \texttt{qs};
+  \item end of the region in the query \texttt{qe};
+  \item a strand indicator \texttt{onReverseStrand}.
+\end{enumerate}
+
+We keep the coordinates of the reference as type \texttt{strings}
+because they are going to be extracted from the headers and no
+calculations are performed on them within the program.
+#+end_export
+#+begin_src go <<Data types>>=
+  type region struct {
+	  rh string
+	  rs string
+	  re string
+	  qh string
+	  qs int
+	  qe int
+	  onReverseStrand bool
+  }
+#+end_src
+#+begin_export latex
+We read the reference and the query files, then prepare them for the
+analysis. After that we perform the search concurrently. For this, we
+need to initialize a workgroup, a \texttt{Mutex}, and a slice of
+regions to store the outputs in. Each sequence of the refrence is
+processed as a \texttt{task} by the \texttt{process} function that is
+to be written. Once a region is processed, we store the result in the
+slice using the \texttt{Mutex}.
+#+end_export
+#+begin_src go <<Perform the search>>=
+  //<<Read the reference file>>
+  //<<Read the query file>>
+  //<<Prepare the sequences>>
+
+  // Initialize the concurrent search
+  var wg sync.WaitGroup
+  var mu sync.Mutex
+  var regions []region
+
+  //<<Define the process function>>
+
+  // Start proceesing
+  for _, task := range reference {
+	  wg.Add(1)
+	  go func(t *fasta.Sequence) {
+		  defer wg.Done()
+		  process(t, query)
+	  }(task)
+  }
+
+  // Wait for all workers to finish
+  wg.Wait()
+#+end_src
+#+begin_export latex
+We import \texttt{sync} and \texttt{fasta}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "sync"
+  "github.com/evolbioinf/fasta"
+#+end_src
+#+begin_export latex
+We open the reference file. If it has been opened successfully, we
+read it and store sequences in a slice.
+#+end_export
+#+begin_src go <<Read the reference file>>=
+  f, err := os.Open(*optR)
+  if err != nil {
+	  fmt.Fprintf(os.Stderr,
+		  "couldn't open the reference %v\n", *optR)
+  }
+  reference := fastautils.ReadAll(f)
+#+end_src
+#+begin_export latex
+We import \texttt{fastautils}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "github.com/ivantsers/fastautils"
+#+end_src
+#+begin_export latex
+Similarly, we read all sequences of the query.
+#+end_export
+#+begin_src go <<Read the query file>>=
+  f, err = os.Open(*optQ)
+  if err != nil {
+	  fmt.Fprintf(os.Stderr,
+		  "couldn't open the query %v\n", *optQ)
+  }
+  query := fastautils.ReadAll(f)
+#+end_src
+#+begin_export latex
+We convert bytes of the reference and the query entries to uppercase,
+then append the reverse strand to each query sequence.
+#+end_export
+#+begin_src go <<Prepare the sequences>>=
+  for _, seq := range reference {
+	  fastautils.DataToUpper(seq)
+  }
+
+  for _, seq := range query {
+	  fastautils.DataToUpper(seq)
+	  fastautils.AddReverseComplement(seq)
+  }
+#+end_src
+#+begin_export latex
+The \texttt{process} takes a task, which is one sequence of the
+\texttt{reference}, and the entire \texttt{query} slice. The function
+checks the format of the task's header, parses a properly formatted
+header and constructs a pattern for exact matching, and performs the
+mathching.
+#+end_export
+#+begin_src go <<Define the process function>>=
+  process := func(refseq *fasta.Sequence,
+	  query []*fasta.Sequence) {
+		  var reg region
+		  goodFormat := false
+		  //<<Check the sequence header formatting>>
+		  if goodFormat {
+			  //<<Parse the header>>
+			  //<<Construct a pattern>>
+			  //<<Perform the matching>>
+		  }
+	  }
+#+end_src
+#+begin_export latex
+The header of an input sequence has to contain its coordinates in the
+reference and positions of mutations, formatted as in the output of
+\texttt{intersect -s}, for example:
+
+\begin{verbatim}
+>referenceContig1_(5..15) 3 5 10 12
+\end{verbatim}
+
+The header should have at least two fields separated with single
+whitespaces: 1) a contig name, an underscore, region coordinates in
+parenthesis; 2) the number of mutations. If the current sequence's
+header doesn't have such a format, we notify the user and set the
+\texttt{goodFormat} switch to \texttt{false}. This will make the loop
+skip this sequence.
+#+end_export
+#+begin_src go <<Check the sequence header formatting>>=
+  header := refseq.Header()
+  re := regexp.MustCompile(`^[^\s]+_\(\d+\.\.\d+\) \d+.*$`)
+  if re.MatchString(header) {
+	  goodFormat = true
+  } else {
+	  fmt.Fprintf(os.Stderr,
+		  "skipping the sequence '%v': " +
+			  "wrong header format\n",
+		  header)
+  }
+#+end_src
+#+begin_export latex
+We import \texttt{regexp}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "regexp"
+#+end_src
+#+begin_export latex
+We parse \texttt{refseq}'s header to guide the pattern
+construction. We split the header string into fields by whitespaces
+and check the second filed, which is the number of mutations. Then we
+extract necessary information from both parts of the header.
+#+end_export
+#+begin_src go <<Parse the header>>=
+  headerFields := strings.Split(header, " ")
+  //<<Get the coordinates of the region>>
+  //<<Get the information on mutations>>
+#+end_src
+#+begin_export latex
+We import \texttt{strings}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "strings"
+#+end_src
+#+begin_export latex
+The information on mutations is a slice of integers, where the first
+element is the number of mutations, and the following elements are
+their positions (one-based). We split the field by whitespaces and
+convert each sub-field into an integer.
+#+end_export
+#+begin_src go <<Get the information on mutations>>=
+  mutationFields := headerFields[1:]
+  var mutationInfo []int
+
+  for _, f := range mutationFields {
+	  num, err := strconv.Atoi(f)
+	  if err != nil {
+		  //<<Error of field type conversion>>
+	  }
+	  mutationInfo = append(mutationInfo, num)
+  }
+#+end_src
+#+begin_export latex
+We import \texttt{strconv}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "strconv"
+#+end_src
+#+begin_export latex
+We print an error message if the conversion went wrong and exit.
+#+end_export
+#+begin_src go <<Error of field type conversion>>=
+  fmt.Fprintf(os.Stderr, "error of parsing the number " +
+	  "of mutations '%v' " +
+	  "in the sequence '%v': %v\n",
+	  f, header, err)
+  os.Exit(1)
+#+end_src
+#+begin_export latex
+We get the coordinates of the reference region from its header. For
+this, we create a regular expression, find a substring match in the
+first field of the header, and store the coordinates as two variables.
+#+end_export
+#+begin_src go <<Get the coordinates of the region>>=
+  coordinateFields := headerFields[0]
+  re := regexp.MustCompile(`\((\d+)\.\.(\d+)\)`)
+  coords := re.FindStringSubmatch(coordinateFields)
+  var refStart, refEnd string
+  if len(coords) == 3 {
+	  refStart = coords[1]
+	  refEnd = coords[2]
+  }
+#+end_src
+#+begin_export latex
+We copy first \texttt{l} nucleotides of the reference as specified in
+\texttt{optL} flag. If the reference is not longer than that and the
+user allows reporting short regions, we just take whatever we have. If
+short regions are not allowed, we return early. We add wildcards for
+mutations to our pattern once (and if) we have it.
+#+end_export
+#+begin_src go <<Construct a pattern>>=
+  refseqLen := len(refseq.Data())
+  var pattern []byte
+
+  if refseqLen > *optL {
+	  pattern = refseq.Data()[:*optL]
+  } else if *optShort {
+	  pattern = refseq.Data()
+  } else {
+	  return
+  }
+  //<<Add wildcards for mutations>>
+#+end_src
+#+begin_export latex
+Should the sequence contain no mutations, we leave everything as
+is. If mutations are present, we extract their positions, convert them
+to zero-based coordinates by subtracting one and replace the
+corresponding bytes of the \texttt{pattern} with dots. We break from
+the loop if the current mutation is out of boundaries of the pattern.
+#+end_export
+#+begin_src go <<Add wildcards for mutations>>=
+  numMutations := mutationInfo[0]
+  if numMutations > 0 {
+	  posMutations := mutationInfo[1:]
+	  patternLastByteIdx := len(pattern) - 1
+	  for _, pos := range posMutations {
+		  posZero := pos - 1
+		  if posZero > patternLastByteIdx {
+			  break
+		  }
+		  pattern[posZero] = '.'
+	  }
+  }
+#+end_src
+#+begin_export latex
+Now that we have the pattern at hand, we perform the actual search. We
+initialize some variables, compile the regular expression and find the
+start position of the leftmost match in the query. We analyze the
+result of the matching. Then we find the end coordinate and project
+its coordinates onto the forward strand if it's been found on the
+reverse strand. Finally, we populate the \texttt{reg} struct and
+append it to the output slice using the \texttt{Mutex}.
+#+end_export
+#+begin_src go <<Perform the matching>>=
+  for _, qseq := range query {
+	  qseqData := qseq.Data()
+	  strandLen := len(qseqData) / 2
+	  var regStart int
+
+	  re := regexp.MustCompile(string(pattern))
+	  match := re.FindIndex(qseqData)
+
+	  //<<Match or mismatch?>>
+
+	  regEnd := regStart + refseqLen
+	  isReverse := false
+	  if regStart > strandLen {
+		  //<<Project the match onto the forward strand>>
+	  }
+	  //<<Populate the \texttt{region} struct>>
+
+	  mu.Lock()
+	  regions = append(regions, reg)
+	  mu.Unlock()
+  }
+#+end_src
+#+begin_export latex
+If a match has been found, we use its index as the start coordinate of
+the region in the query. If there's no match, we proceed with the next
+sequence of the query.
+#+end_export
+#+begin_src go <<Match or mismatch?>>=
+  if match != nil {
+	  regStart = match[0]
+  } else {
+	  continue
+  }
+#+end_src
+#+begin_export latex
+To project the match onto the forward strand, we swap its start and
+its end and subtract it from the total length of both strands
+(including the separator). Then we calculate the new end of the
+region and toggle the \texttt{isReverse} indicator.
+#+end_export
+#+begin_src go <<Project the match onto the forward strand>>=
+  regStart = len(qseqData) - regEnd
+  regEnd = regStart + refseqLen
+  isReverse = true
+#+end_src
+#+begin_export latex
+We fill the fields of the resulting \texttt{region} struct.
+#+end_export
+#+begin_src go <<Populate the \texttt{region} struct>>=
+  reg.rh = coordinateFields
+  reg.rs = refStart
+  reg.re = refEnd
+  reg.qh = qseq.Header()
+  reg.qs = regStart
+  reg.qe = regEnd
+  reg.onReverseStrand = isReverse
+#+end_src
+#+begin_export latex
+If the user has toggled the \texttt{-s} flag, we proceed with printing
+the actual sequences. By default, we construct and print a table of
+the coordinates
+#+end_export
+#+begin_src go <<Print the results>>=
+  if *optS {
+	  //<<Print sequences>>
+  } else {
+	  //<<Print coordinates>>
+  }
+#+end_src
+#+begin_export latex
+We initialize a slice of \texttt{fasta} sequences, then iterate over
+the regions constructing output headers and data for each entry. We
+append the output sequence to the slice. Once we're done, we print the
+sequences.
+#+end_export
+#+begin_src go <<Print sequences>>=
+  var outSeqs []*fasta.Sequence
+
+  for _, region := range regions {
+	  //<<Build the output header>>
+	  //<<Build the output data>>
+	  outSeq := fasta.NewSequence(outHeader, outData)
+	  outSeqs = append(outSeqs, outSeq)
+  }
+
+  for _, seq := range outSeqs {
+	  fmt.Fprintf(os.Stdout, "%s\n", seq)
+  }
+#+end_src
+#+begin_export latex
+We identify the strand and include the following in the output's
+header: the first field of original reference header, name of the
+query and the position of the region on the query, and the strand
+name. We add one to the query starts to have them 1-based.
+#+end_export
+#+begin_src go <<Build the output header>>=
+  //<<Set the \texttt{strand} value>>
+  outHeader := fmt.Sprintf("%s_%s_(%d..%d)_%s",
+	  region.rh, region.qh, region.qs + 1, region.qe,
+	  strand)
+#+end_src
+#+begin_export latex
+The \texttt{strand} variable keeps either "forward" or "reverese".
+#+end_export
+#+begin_src go <<Set the \texttt{strand} value>>=
+  strand := "forward"
+  if region.onReverseStrand {
+	  strand = "reverse"
+  }
+#+end_src
+#+begin_export latex
+To extract the relevant query sequence, we have to find the
+corresponding contig first. We find it by its name and then use the
+coordinates to extract a piece of its data.
+#+end_export
+#+begin_src go <<Build the output data>>=
+  var queryContig *fasta.Sequence
+
+  for _, seq := range query {
+	  if seq.Header() == region.qh {
+		  queryContig = seq
+	  }
+  }
+
+  outData := queryContig.Data()[region.qs:region.qe]
+#+end_src
+#+begin_export latex
+We initialize a \texttt{tabwriter}, print the table's header, then we
+iterate over the regions and print them as rows of the table. We add
+one to the start coordinates to have them 1-based.
+#+end_export
+#+begin_src go <<Print coordinates>>=
+  writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+  fmt.Fprintf(writer,
+	  "# refName\trefStart\trefEnd\t" +
+	  "queryName\tqueryStart\tqueryEnd\tstrand\n")
+  for _, region := range regions {
+	  //<<Set the \texttt{strand} value>>
+	  fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%d\t%d\t%s\n",
+		  region.rh, region.rs, region.re,
+		  region.qh, region.qs + 1, region.qe,
+		  strand)
+  }
+  writer.Flush()
+#+end_src
+#+begin_export latex
+We import \texttt{tabwriter}.
+#+end_export
+#+begin_src go <<Imports>>=
+  "text/tabwriter"
 #+end_src

@@ -1,8 +1,8 @@
 #+begin_export latex
-The program \ty{intersect} is a demo interface for the \ty{Intersect}
-function of the \ty{chr} package. The program searches homologous
-regions common to a set of target genomes shared by two genomes.
-\ty{intersect} has hooks for imports and the main function.
+\subsection{Introduction}
+The program \ty{intersect} searches for homologous regions common to a
+set of target genomes shared by two genomes.  \ty{intersect} has hooks
+for imports and the main function.
 #+end_export
 #+begin_src go <<intersect.go>>=
   package main
@@ -14,6 +14,7 @@ regions common to a set of target genomes shared by two genomes.
   }
 #+end_src
 #+begin_export latex
+\subsection{Implementation}
 In the main function, we declare the options, set the usage, parse the
 options, run the \ty{Intersect} function, and print the results.
 #+end_export
