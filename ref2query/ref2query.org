@@ -36,19 +36,16 @@ options, search for regions, and print the results.
   //<<Print the results>>
 #+end_src
 #+begin_export latex
-The program accepts two \texttt{fasta}-formatted sequences as an
-input: a reference that is the output of \texttt{intersect}, and a
-query, which is ideally one of the target sequences used to calculate
-the intersection. The user can specify the length of the referece's
-prefix to include for exact matching, set the maximum number of
-threads, and allow matching short regions. As an alternative, the user
-can opt using entire regions for exact matching. Finally, the user can
-toggle the output format to printing found sequences.
+The program accepts a \texttt{fasta}-formatted sequence as a reference
+that is the output of \texttt{intersect}.. The user can specify the
+length of the referece's prefix to include for exact matching, set the
+maximum number of threads, set the output file name, and allow
+matching short regions. As an alternative, the user can opt using
+entire regions for exact matching. Finally, the user can toggle the
+output format to printing found sequences.
 #+end_export
 #+begin_src go <<Declare options>>=
   optR := flag.String("r", "", "reference sequence")
-
-  optQ := flag.String("q", "", "query sequence")
 
   optL := flag.Int("l", 15,
 	  "length of a prefix anchor for matching")
@@ -60,6 +57,8 @@ toggle the output format to printing found sequences.
 	  "use complete regions for exact matching")
 
   optS := flag.Bool("s", false, "print sequences in the output")
+
+  optO := flag.String("o", "", "output file name")
 
   optT := flag.Int("t", runtime.NumCPU(),
 	  "maximum number of available threads")
@@ -76,10 +75,10 @@ The usage consists of three statements: the actual usage statement, an
 explanation of the program’s purpose, and an example command.
 #+end_export
 #+begin_src go <<Set usage>>=
-  u := "ref2query [option]..."
+  u := "ref2query [options]... <query files>"
   p := "Find reference homologous regions " +
-	  "of the intersection in a query"
-  e := "ref2query -r intersection.fasta -q query.fasta"
+	  "of the intersection in queries"
+  e := "ref2query -r intersection.fasta query.fasta"
   clio.Usage(u, p, e)
 #+end_src
 #+begin_export latex
@@ -89,17 +88,28 @@ We import \texttt{clio}.
   "github.com/evolbioinf/clio"
 #+end_src
 #+begin_export latex
-We parse the options and check the user's input. We exit if either
-query or reference are missing. Then we access the values of
-\texttt{-l} and \texttt{-t}. We exit if the values of either is zero
-or less to avoid a panic. We also set the maximum number of threads.
+We parse the options and interpret the remaining arguments as query
+file names. The set of query sequences ideally consists of at least
+one of the target sequences used to calculate the intersection. Then
+we check the user's input. We exit if either queries or reference are
+missing. Then we access the values of \texttt{-l} and \texttt{-t}. We
+exit if the values of either is zero or less to avoid a panic. We also
+set the maximum number of threads.
 #+end_export
 #+begin_src go <<Parse the options>>=
   flag.Parse()
 
-  if *optQ == "" || *optR == "" {
+  queryFiles := flag.Args()
+
+  if len(queryFiles) < 1 {
 	  fmt.Fprintf(os.Stderr,
-		  "please specify a reference and a query\n")
+		  "please specify queries\n")
+	  os.Exit(1)
+  }
+
+  if *optR == "" {
+	  fmt.Fprintf(os.Stderr,
+		  "please specify a reference\n")
 	  os.Exit(1)
   }
 
@@ -160,37 +170,41 @@ calculations are performed on them within the program.
   }
 #+end_src
 #+begin_export latex
-We read the reference and the query files, then prepare them for the
-analysis. After that we perform the search concurrently. For this, we
-need to initialize a workgroup, a \texttt{Mutex}, and a slice of
-regions to store the outputs in. Each sequence of the refrence is
+We read the reference and prepare it for the analysis. After that we
+iterate over the query files and perform the search concurrently. For
+this, we need to initialize a workgroup, a \texttt{Mutex}, and a slice
+of regions to store the outputs in. Each sequence of the refrence is
 processed as a \texttt{task} by the \texttt{process} function that is
 to be written. Once a region is processed, we store the result in the
 slice using the \texttt{Mutex}.
 #+end_export
 #+begin_src go <<Perform the search>>=
   //<<Read the reference file>>
-  //<<Read the query file>>
-  //<<Prepare the sequences>>
-
-  // Initialize the concurrent search
-  var wg sync.WaitGroup
-  var mu sync.Mutex
+  //<<Prepare the reference>>
   var regions []region
+  var query []*fasta.Sequence
+  for _, queryFile := range queryFiles {
+	  //<<Read the query file>>
+	  //<<Prepare the query>>
 
-  //<<Define the process function>>
+	  // Initialize the concurrent search
+	  var wg sync.WaitGroup
+	  var mu sync.Mutex
 
-  // Start proceesing
-  for _, task := range reference {
-	  wg.Add(1)
-	  go func(t *fasta.Sequence) {
-		  defer wg.Done()
-		  process(t, query)
-	  }(task)
+	  //<<Define the process function>>
+
+	  // Start proceesing
+	  for _, task := range reference {
+		  wg.Add(1)
+		  go func(t *fasta.Sequence) {
+			  defer wg.Done()
+			  process(t, query)
+		  }(task)
+	  }
+
+	  // Wait for all workers to finish
+	    wg.Wait()
   }
-
-  // Wait for all workers to finish
-  wg.Wait()
 #+end_src
 #+begin_export latex
 We import \texttt{sync} and \texttt{fasta}.
@@ -218,25 +232,29 @@ We import \texttt{fastautils}.
   "github.com/ivantsers/fastautils"
 #+end_src
 #+begin_export latex
-Similarly, we read all sequences of the query.
+We convert reference's data bytes to uppercase.
 #+end_export
-#+begin_src go <<Read the query file>>=
-  f, err = os.Open(*optQ)
-  if err != nil {
-	  fmt.Fprintf(os.Stderr,
-		  "couldn't open the query %v\n", *optQ)
-  }
-  query := fastautils.ReadAll(f)
-#+end_src
-#+begin_export latex
-We convert bytes of the reference and the query entries to uppercase,
-then append the reverse strand to each query sequence.
-#+end_export
-#+begin_src go <<Prepare the sequences>>=
+#+begin_src go <<Prepare the reference>>=
   for _, seq := range reference {
 	  fastautils.DataToUpper(seq)
   }
-
+#+end_src
+#+begin_export latex
+We read all sequences of the query.
+#+end_export
+#+begin_src go <<Read the query file>>=
+  f, err = os.Open(queryFile)
+  if err != nil {
+	  fmt.Fprintf(os.Stderr,
+		  "couldn't open the query %v\n", queryFile)
+  }
+  query = fastautils.ReadAll(f)
+#+end_src
+#+begin_export latex
+We convert bytes of the query's entries to uppercase, then append the
+reverse strand to each query sequence.
+#+end_export
+#+begin_src go <<Prepare the query>>=
   for _, seq := range query {
 	  fastautils.DataToUpper(seq)
 	  fastautils.AddReverseComplement(seq)
@@ -481,6 +499,7 @@ default, we construct and print a table of the coordinates
 #+end_export
 #+begin_src go <<Print the results>>=
   //<<Sort the regions>>
+  //<<Prepare the output file>>
   if *optS {
 	  //<<Print sequences>>
   } else {
@@ -488,13 +507,17 @@ default, we construct and print a table of the coordinates
   }
 #+end_src
 #+begin_export latex
-We sort the regions by reference contigs' names and region start
-coordinates using the \texttt{sort.Slice} function.
+We sort the regions by reference contigs' names, query sequence's
+name, and region start coordinates using the \texttt{sort.Slice}
+function.
 #+end_export
 #+begin_src go <<Sort the regions>>=
   sort.Slice(regions, func(i, j int) bool {
 	  if regions[i].rh != regions[j].rh {
 		  return regions[i].rh < regions[j].rh
+	  }
+	  if regions[i].qh != regions[j].qh {
+		  return regions[i].qh < regions[j].qh
 	  }
 	  return regions[i].rs < regions[j].rs
   })
@@ -504,6 +527,25 @@ We import \texttt{sort}.
 #+end_export
 #+begin_src go <<Imports>>=
   "sort"
+#+end_src
+#+begin_export latex
+We prepare the output file. If the user has specified its name, we
+open a new file and use it as the output file. Otherwise we are going
+to write to the \texttt{stdout}.
+#+end_export
+#+begin_src go <<Prepare the output file>>=
+  var outputFile *os.File
+  if *optO != "" {
+	  file, err := os.Create(*optO)
+	  if err != nil {
+		  fmt.Fprintf(os.Stderr,
+			  "error creating file: %v\n", err)
+		  os.Exit(1)
+	  }
+	  outputFile = file
+  } else {
+	  outputFile = os.Stdout
+  }
 #+end_src
 #+begin_export latex
 We initialize a slice of \texttt{fasta} sequences, then iterate over
@@ -522,7 +564,7 @@ sequences.
   }
 
   for _, seq := range outSeqs {
-	  fmt.Fprintf(os.Stdout, "%s\n", seq)
+	  fmt.Fprintf(outputFile, "%s\n", seq)
   }
 #+end_src
 #+begin_export latex
@@ -564,17 +606,48 @@ coordinates to extract a piece of its data.
 #+end_src
 #+begin_export latex
 We initialize a \texttt{tabwriter}, print the table's header, then we
-iterate over the regions and print them as rows of the table. We add
-one to the start coordinates to have them 1-based.
+iterate over the regions and print them as rows of the table.
 #+end_export
 #+begin_src go <<Print coordinates>>=
-  writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-  fmt.Fprintf(writer,
-	  "# refName\trefStart\trefEnd\t" +
-	  "queryName\tqueryStart\tqueryEnd\tstrand\n")
+  tableHeader := "# refName\trefStart\trefEnd\t" +
+	  "queryName\tqueryStart\tqueryEnd\tstrand\n"
+  tableFields := "%s\t%s\t%s\t%s\t%d\t%d\t%s\n"
+
+  if *optO != "" {
+	  //<<Print the output table to a file>>
+  } else {
+	  //<<Print the output table using a tabwriter>>
+  }
+
+#+end_src
+#+begin_export latex
+We print the table's header to the output file, then we iterate over
+regions to print their fields as the rows.  We add one to the start
+coordinates to have them 1-based. Once we have finished, we close the
+file.
+#+end_export
+#+begin_src go <<Print the output table to a file>>=
+  fmt.Fprintf(outputFile, tableHeader)
   for _, region := range regions {
 	  //<<Set the \texttt{strand} value>>
-	  fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%d\t%d\t%s\n",
+	  fmt.Fprintf(outputFile, tableFields,
+		  region.rh, region.rs, region.re,
+		  region.qh, region.qs + 1, region.qe,
+		  strand)
+  }
+  outputFile.Close()
+#+end_src
+#+begin_export latex
+We create a tabwriter, print the table's header and fields.  We add
+one to the start coordinates to have them 1-based. The writer is
+getting flushed in the end.
+#+end_export
+#+begin_src go <<Print the output table using a tabwriter>>=
+  writer := tabwriter.NewWriter(outputFile, 0, 0, 1, ' ', 0)
+  fmt.Fprintf(writer, tableHeader)
+  for _, region := range regions {
+	  //<<Set the \texttt{strand} value>>
+	  fmt.Fprintf(writer, tableFields,
 		  region.rh, region.rs, region.re,
 		  region.qh, region.qs + 1, region.qe,
 		  strand)
