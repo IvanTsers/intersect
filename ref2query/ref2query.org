@@ -26,23 +26,26 @@ site.
 #+begin_export latex
 \subsection{Implementation}
 In the main function, we declare options, set usage, parse the
-options, search for regions, and print the results.
+options, search for regions, and print the match coordinates, if the
+\texttt{-s} flag has not been toggled (see options).
 #+end_export
 #+begin_src go <<Main function>>=
   //<<Declare options>>
   //<<Set usage>>
   //<<Parse the options>>
   //<<Perform the search>>
-  //<<Print the results>>
+  if !*optS {
+	  //<<Print match coordinates>>
+  }
 #+end_src
 #+begin_export latex
 The program accepts a \texttt{fasta}-formatted sequence as a reference
-that is the output of \texttt{intersect}.. The user can specify the
+that is the output of \texttt{intersect}. The user can specify the
 length of the referece's prefix to include for exact matching, set the
-maximum number of threads, set the output file name, and allow
-matching short regions. As an alternative, the user can opt using
-entire regions for exact matching. Finally, the user can toggle the
-output format to printing found sequences.
+maximum number of threads, and allow matching short regions. As an
+alternative, the user can opt using entire regions for exact
+matching. Finally, the user can toggle the output format to printing
+match sequences.
 #+end_export
 #+begin_src go <<Declare options>>=
   optR := flag.String("r", "", "reference sequence")
@@ -56,9 +59,7 @@ output format to printing found sequences.
   optC := flag.Bool("c", false,
 	  "use complete regions for exact matching")
 
-  optS := flag.Bool("s", false, "print sequences in the output")
-
-  optO := flag.String("o", "", "output file name")
+  optS := flag.Bool("s", false, "print match sequences")
 
   optT := flag.Int("t", runtime.NumCPU(),
 	  "maximum number of available threads")
@@ -432,7 +433,8 @@ start position of the leftmost match in the query. We analyze the
 result of the matching. Then we find the end coordinate and project
 its coordinates onto the forward strand if it's been found on the
 reverse strand. Finally, we populate the \texttt{reg} struct and
-append it to the output slice using the \texttt{Mutex}.
+append it to the output slice using the \texttt{Mutex}. If the user
+has opted to print actual match sequences, we do it now.
 #+end_export
 #+begin_src go <<Perform the matching>>=
   for _, qseq := range query {
@@ -451,7 +453,9 @@ append it to the output slice using the \texttt{Mutex}.
 		  //<<Project the match onto the forward strand>>
 	  }
 	  //<<Populate the \texttt{region} struct>>
-
+	  if *optS {
+		  //<<Print the match sequence>>
+	  }
 	  mu.Lock()
 	  regions = append(regions, reg)
 	  mu.Unlock()
@@ -493,18 +497,66 @@ We fill the fields of the resulting \texttt{region} struct.
   reg.onReverseStrand = isReverse
 #+end_src
 #+begin_export latex
-We sort the regions before printing. If the user has toggled the
-\texttt{-s} flag, we proceed with printing the actual sequences. By
-default, we construct and print a table of the coordinates
+We build a header and data for the output sequence corresponding to
+the match region of the current query. Once we're done, we construct
+and print the sequence.
 #+end_export
-#+begin_src go <<Print the results>>=
-  //<<Sort the regions>>
-  //<<Prepare the output file>>
-  if *optS {
-	  //<<Print sequences>>
-  } else {
-	  //<<Print coordinates>>
+#+begin_src go <<Print the match sequence>>=
+  //<<Build the output header>>
+  //<<Build the output data>>
+  outSeq := fasta.NewSequence(outHeader, outData)
+  fmt.Fprintf(os.Stdout, "%s\n", outSeq)
+#+end_src
+#+begin_export latex
+We identify the strand and include the following in the output's
+header: the first field of original reference header, name of the
+query and the position of the region on the query, and the strand
+name. We add one to the query starts to have them 1-based.
+#+end_export
+#+begin_src go <<Build the output header>>=
+  //<<Set the \texttt{strand} value>>
+  outHeader := fmt.Sprintf("%s_%s_(%d..%d)_%s",
+	  reg.rh, reg.qh, reg.qs + 1, reg.qe,
+	  strand)
+#+end_src
+#+begin_export latex
+The \texttt{strand} variable keeps either "forward" or "reverese".
+#+end_export
+#+begin_src go <<Set the \texttt{strand} value>>=
+  strand := "forward"
+  if reg.onReverseStrand {
+	  strand = "reverse"
   }
+#+end_src
+#+begin_export latex
+To extract the relevant query sequence, we have to find the
+corresponding contig first. We find it by its name and then use the
+coordinates to extract a piece of its data.
+#+end_export
+#+begin_src go <<Build the output data>>=
+  var queryContig *fasta.Sequence
+
+  for _, seq := range query {
+	  if seq.Header() == reg.qh {
+		  queryContig = seq
+	  }
+  }
+
+  outData := queryContig.Data()[reg.qs:reg.qe]
+#+end_src
+#+begin_export latex
+We turn to making an output table of match coordinates.  We sort the
+regions before printing, then we set the formatting for the header and
+rows the table of the coordinates.
+#+end_export
+#+begin_src go <<Print match coordinates>>=
+  //<<Sort the regions>>
+
+  tableHeader := "# refName\trefStart\trefEnd\t" +
+	    "queryName\tqueryStart\tqueryEnd\tstrand\n"
+  tableFields := "%s\t%s\t%s\t%s\t%d\t%d\t%s\n"
+
+  //<<Print the table of coordinates>>
 #+end_src
 #+begin_export latex
 We sort the regions by reference contigs' names, query sequence's
@@ -528,90 +580,29 @@ We import \texttt{sort}.
 #+begin_src go <<Imports>>=
   "sort"
 #+end_src
-#+begin_export latex
-We prepare the output file. If the user has specified its name, we
-open a new file and use it as the output file. Otherwise we are going
-to write to the \texttt{stdout}.
-#+end_export
-#+begin_src go <<Prepare the output file>>=
-  var outputFile *os.File
-  if *optO != "" {
-	  file, err := os.Create(*optO)
-	  if err != nil {
-		  fmt.Fprintf(os.Stderr,
-			  "error creating file: %v\n", err)
-		  os.Exit(1)
-	  }
-	  outputFile = file
-  } else {
-	  outputFile = os.Stdout
-  }
-#+end_src
-#+begin_export latex
-We initialize a slice of \texttt{fasta} sequences, then iterate over
-the regions constructing output headers and data for each entry. We
-append the output sequence to the slice. Once we're done, we print the
-sequences.
-#+end_export
-#+begin_src go <<Print sequences>>=
-  var outSeqs []*fasta.Sequence
 
-  for _, region := range regions {
-	  //<<Build the output header>>
-	  //<<Build the output data>>
-	  outSeq := fasta.NewSequence(outHeader, outData)
-	  outSeqs = append(outSeqs, outSeq)
-  }
-
-  for _, seq := range outSeqs {
-	  fmt.Fprintf(outputFile, "%s\n", seq)
-  }
-#+end_src
 #+begin_export latex
-We identify the strand and include the following in the output's
-header: the first field of original reference header, name of the
-query and the position of the region on the query, and the strand
-name. We add one to the query starts to have them 1-based.
+We print the table's header, then we iterate over regions to print
+their fields as the rows.  We add one to the start coordinates to have
+them 1-based. Once we have finished, we close the file.
 #+end_export
-#+begin_src go <<Build the output header>>=
-  //<<Set the \texttt{strand} value>>
-  outHeader := fmt.Sprintf("%s_%s_(%d..%d)_%s",
-	  region.rh, region.qh, region.qs + 1, region.qe,
-	  strand)
-#+end_src
-#+begin_export latex
-The \texttt{strand} variable keeps either "forward" or "reverese".
-#+end_export
-#+begin_src go <<Set the \texttt{strand} value>>=
-  strand := "forward"
-  if region.onReverseStrand {
-	  strand = "reverse"
+#+begin_src go <<Print the table of coordinates>>=
+  fmt.Fprintf(os.Stdout, tableHeader)
+  for _, reg := range regions {
+	  //<<Set the \texttt{strand} value>>
+	  fmt.Fprintf(os.Stdout, tableFields,
+		  reg.rh, reg.rs, reg.re,
+		  reg.qh, reg.qs + 1, reg.qe,
+		  strand)
   }
 #+end_src
-#+begin_export latex
-To extract the relevant query sequence, we have to find the
-corresponding contig first. We find it by its name and then use the
-coordinates to extract a piece of its data.
-#+end_export
-#+begin_src go <<Build the output data>>=
-  var queryContig *fasta.Sequence
 
-  for _, seq := range query {
-	  if seq.Header() == region.qh {
-		  queryContig = seq
-	  }
-  }
-
-  outData := queryContig.Data()[region.qs:region.qe]
-#+end_src
 #+begin_export latex
 We initialize a \texttt{tabwriter}, print the table's header, then we
 iterate over the regions and print them as rows of the table.
 #+end_export
 #+begin_src go <<Print coordinates>>=
-  tableHeader := "# refName\trefStart\trefEnd\t" +
-	  "queryName\tqueryStart\tqueryEnd\tstrand\n"
-  tableFields := "%s\t%s\t%s\t%s\t%d\t%d\t%s\n"
+
 
   if *optO != "" {
 	  //<<Print the output table to a file>>
@@ -621,23 +612,6 @@ iterate over the regions and print them as rows of the table.
 
 #+end_src
 #+begin_export latex
-We print the table's header to the output file, then we iterate over
-regions to print their fields as the rows.  We add one to the start
-coordinates to have them 1-based. Once we have finished, we close the
-file.
-#+end_export
-#+begin_src go <<Print the output table to a file>>=
-  fmt.Fprintf(outputFile, tableHeader)
-  for _, region := range regions {
-	  //<<Set the \texttt{strand} value>>
-	  fmt.Fprintf(outputFile, tableFields,
-		  region.rh, region.rs, region.re,
-		  region.qh, region.qs + 1, region.qe,
-		  strand)
-  }
-  outputFile.Close()
-#+end_src
-#+begin_export latex
 We create a tabwriter, print the table's header and fields.  We add
 one to the start coordinates to have them 1-based. The writer is
 getting flushed in the end.
@@ -645,18 +619,4 @@ getting flushed in the end.
 #+begin_src go <<Print the output table using a tabwriter>>=
   writer := tabwriter.NewWriter(outputFile, 0, 0, 1, ' ', 0)
   fmt.Fprintf(writer, tableHeader)
-  for _, region := range regions {
-	  //<<Set the \texttt{strand} value>>
-	  fmt.Fprintf(writer, tableFields,
-		  region.rh, region.rs, region.re,
-		  region.qh, region.qs + 1, region.qe,
-		  strand)
-  }
-  writer.Flush()
-#+end_src
-#+begin_export latex
-We import \texttt{tabwriter}.
-#+end_export
-#+begin_src go <<Imports>>=
-  "text/tabwriter"
-#+end_src
+  f
