@@ -480,7 +480,7 @@ its end and subtract it from the total length of both strands
 region and toggle the \texttt{isReverse} indicator.
 #+end_export
 #+begin_src go <<Project the match onto the forward strand>>=
-  regStart = len(qseqData) - regEnd
+  regStart = len(qseqData) - regStart - refseqLen
   regEnd = regStart + refseqLen
   isReverse = true
 #+end_src
@@ -531,7 +531,11 @@ The \texttt{strand} variable keeps either "forward" or "reverese".
 #+begin_export latex
 To extract the relevant query sequence, we have to find the
 corresponding contig first. We find it by its name and then use the
-coordinates to extract a piece of its data.
+coordinates to extract a piece of its data. \textbf{Note} that we
+always print the actual match's sequence. If the match was found on
+the reverse strand, we print it as it is in the reverse strand, but
+the coordinates in the header correspond to it's position on the
+forward strand.
 #+end_export
 #+begin_src go <<Build the output data>>=
   var queryContig *fasta.Sequence
@@ -542,7 +546,10 @@ coordinates to extract a piece of its data.
 	  }
   }
 
-  outData := queryContig.Data()[reg.qs:reg.qe]
+  outData := queryContig.Data()[match[0]:match[0]+refseqLen]
+
+  // This will always print the forward strand:
+  //outData := queryContig.Data()[reg.qs:reg.qe]
 #+end_src
 #+begin_export latex
 We turn to making an output table of match coordinates.  We sort the
@@ -580,7 +587,6 @@ We import \texttt{sort}.
 #+begin_src go <<Imports>>=
   "sort"
 #+end_src
-
 #+begin_export latex
 We print the table's header, then we iterate over regions to print
 their fields as the rows.  We add one to the start coordinates to have
@@ -596,27 +602,3 @@ them 1-based. Once we have finished, we close the file.
 		  strand)
   }
 #+end_src
-
-#+begin_export latex
-We initialize a \texttt{tabwriter}, print the table's header, then we
-iterate over the regions and print them as rows of the table.
-#+end_export
-#+begin_src go <<Print coordinates>>=
-
-
-  if *optO != "" {
-	  //<<Print the output table to a file>>
-  } else {
-	  //<<Print the output table using a tabwriter>>
-  }
-
-#+end_src
-#+begin_export latex
-We create a tabwriter, print the table's header and fields.  We add
-one to the start coordinates to have them 1-based. The writer is
-getting flushed in the end.
-#+end_export
-#+begin_src go <<Print the output table using a tabwriter>>=
-  writer := tabwriter.NewWriter(outputFile, 0, 0, 1, ' ', 0)
-  fmt.Fprintf(writer, tableHeader)
-  f
