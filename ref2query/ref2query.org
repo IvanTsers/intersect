@@ -45,7 +45,7 @@ length of the referece's prefix to include for exact matching, set the
 maximum number of threads, and allow matching short regions. As an
 alternative, the user can opt using entire regions for exact
 matching. Finally, the user can toggle the output format to printing
-match sequences.
+match sequences and printing only query file names in their headers.
 #+end_export
 #+begin_src go <<Declare options>>=
   optR := flag.String("r", "", "reference sequence")
@@ -63,6 +63,10 @@ match sequences.
 
   optT := flag.Int("t", runtime.NumCPU(),
 	  "maximum number of available threads")
+
+  optH := flag.Bool("h", false,
+	  "print only query file names in headers " +
+	  "output fasta entries")
 #+end_src
 #+begin_export latex
 We import \texttt{flag} and \texttt{runtime}.
@@ -152,7 +156,8 @@ query. The struct includes:
     region belongs in the query;
   \item start of the region in the query \texttt{qs};
   \item end of the region in the query \texttt{qe};
-  \item a strand indicator \texttt{onReverseStrand}.
+  \item a strand indicator \texttt{onReverseStrand};
+  \item name of the query file.
 \end{enumerate}
 
 We keep the coordinates of the reference as type \texttt{strings}
@@ -168,6 +173,7 @@ calculations are performed on them within the program.
 	  qs int
 	  qe int
 	  onReverseStrand bool
+	  qf string
   }
 #+end_src
 #+begin_export latex
@@ -430,7 +436,7 @@ the loop if the current mutation is out of boundaries of the pattern.
 Now that we have the pattern at hand, we perform the actual search. We
 initialize some variables, compile the regular expression and find the
 start position of the leftmost match in the query. We analyze the
-result of the matching. Then we find the end coordinate and project
+result of the matching. Then we check the end coordinate and project
 its coordinates onto the forward strand if it's been found on the
 reverse strand. Finally, we populate the \texttt{reg} struct and
 append it to the output slice using the \texttt{Mutex}. If the user
@@ -439,15 +445,16 @@ has opted to print actual match sequences, we do it now.
 #+begin_src go <<Perform the matching>>=
   for _, qseq := range query {
 	  qseqData := qseq.Data()
-	  strandLen := len(qseqData) / 2
-	  var regStart int
+	  qseqLen := len(qseqData)
+	  strandLen := qseqLen / 2
+	  var regStart, regEnd int
 
 	  re := regexp.MustCompile(string(pattern))
 	  match := re.FindIndex(qseqData)
 
 	  //<<Match or mismatch?>>
+	  //<<Check region's end>>
 
-	  regEnd := regStart + refseqLen
 	  isReverse := false
 	  if regStart > strandLen {
 		  //<<Project the match onto the forward strand>>
@@ -474,6 +481,20 @@ sequence of the query.
   }
 #+end_src
 #+begin_export latex
+We may find a match close to the end of the current query contig. In
+this case, the matching region may end after the contig's end. We
+consider this a false positive and skip it as we expect the region to
+fit into the query entirely. Moreover, an end coordinate 'hanging' off
+the query is fraught with panic once we attempt to extract the
+correspoding bytes from the query.
+#+end_export
+#+begin_src go <<Check region's end>>=
+  regEnd = regStart + refseqLen
+  if regEnd > qseqLen {
+	  continue
+  }
+#+end_src
+#+begin_export latex
 To project the match onto the forward strand, we swap its start and
 its end and subtract it from the total length of both strands
 (including the separator). Then we calculate the new end of the
@@ -495,6 +516,7 @@ We fill the fields of the resulting \texttt{region} struct.
   reg.qs = regStart
   reg.qe = regEnd
   reg.onReverseStrand = isReverse
+  reg.qf = queryFile
 #+end_src
 #+begin_export latex
 We build a header and data for the output sequence corresponding to
@@ -508,16 +530,25 @@ and print the sequence.
   fmt.Fprintf(os.Stdout, "%s\n", outSeq)
 #+end_src
 #+begin_export latex
-We identify the strand and include the following in the output's
+We identify the strand and check the desired format of the header. If
+\texttt{h} is toggled, we include only the query file name (without
+directories). Otherwise we include the following in the output's
 header: the first field of original reference header, name of the
 query and the position of the region on the query, and the strand
 name. We add one to the query starts to have them 1-based.
 #+end_export
 #+begin_src go <<Build the output header>>=
   //<<Set the \texttt{strand} value>>
-  outHeader := fmt.Sprintf("%s_%s_(%d..%d)_%s",
-	  reg.rh, reg.qh, reg.qs + 1, reg.qe,
-	  strand)
+  var outHeader string
+  if *optH {
+	  fields := strings.Split(reg.qf, "/")
+	  filename := fields[len(fields) - 1]
+	  outHeader = fmt.Sprintf("%s", filename)
+  } else {
+	  outHeader = fmt.Sprintf("%s_%s_(%d..%d)_%s",
+		  reg.rh, reg.qh, reg.qs + 1, reg.qe,
+		  strand)
+  }
 #+end_src
 #+begin_export latex
 The \texttt{strand} variable keeps either "forward" or "reverese".
