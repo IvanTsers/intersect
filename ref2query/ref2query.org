@@ -64,7 +64,7 @@ match sequences and printing only query file names in their headers.
   optT := flag.Int("t", runtime.NumCPU(),
 	  "maximum number of available threads")
 
-  optH := flag.Bool("h", false,
+  optH := flag.Bool("headers", false,
 	  "print only query file names in headers " +
 	  "output fasta entries")
 #+end_src
