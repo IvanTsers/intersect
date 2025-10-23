@@ -5,13 +5,12 @@ set of target genomes shared by two genomes.  \ty{intersect} has hooks
 for imports and the main function.
 #+end_export
 #+begin_src go <<intersect.go>>=
-  package main
-  import (
-	  //<<Imports>>
-  )
-  func main() {
-	  //<<Main function>>
-  }
+    package main
+    import (
+	    //<<Imports>>
+    )
+	    //<<Main function>>
+    }
 #+end_src
 #+begin_export latex
 \subsection{Implementation}
@@ -36,31 +35,14 @@ verbose mode. Finally, one can set the number of threads.
 #+begin_src go <<Declare options>>=
   optR := flag.String("r", "", "reference sequence")
 
-  optD := flag.String("d", "", "directory of target sequences")
-
   optP := flag.Float64("p", 0.975,
 	  "threshold p-value for a shustring length")
-  optVerb := flag.Bool("verbose", false, "toggle verbose mode")
 
   optN := flag.Bool("n", false, "print segregating sites (Ns) " +
 	  "in the output sequences")
 
-  optS := flag.Bool("s", false, "print segregating site " + 
-	  "positions in the output headers")
-
   optF := flag.Float64("f", 1.0,
 	  "intersection sensitivity threshold")
-
-  optCleanR := flag.Bool("clean-reference", false,
-	  "remove non-ATGC nucleotides from the reference")
-
-  optCleanQ := flag.Bool("clean-queries", false,
-	  "remove non-ATGC nucleotides from the queries")
-
-  optZeroBased := flag.Bool("zero-based-output", false,
-	  "print zero-based, end-exclusive coordinates in the " +
-		  "output headers. The default coordinates " +
-		  "are one-based, end-inclusive.")
 
   optT := flag.Int("t", 1, "number of threads")
 #+end_src
@@ -93,13 +75,6 @@ reference. Then we read the reference's contigs and set parameters for
 #+end_export
 #+begin_src go <<Parse options>>=
   flag.Parse()
-  numFiles := 0
-  //<<Count the number of target genomes>>
-  if numFiles < 1 {
-	  fmt.Fprintf(os.Stderr,
-		  "the target dir contains no files\n")
-	  os.Exit(1)
-  }
   //<<Check the reference>>
   //<<Read reference's contigs>>
   //<<Set parameters>>
@@ -110,18 +85,6 @@ We import \ty{fmt} and \ty{os}.
 #+begin_src go <<Imports>>=
   "fmt"
   "os"
-#+end_src
-#+begin_export latex
-We access the target directory entries and count them.
-#+end_export
-#+begin_src go <<Count the number of target genomes>>=
-  dirEntries, err := os.ReadDir(*optD)
-  if err != nil {
-	  fmt.Fprintf(os.Stderr,
-		  "error reading %v: %v\n", *optD, err)
-	  os.Exit(1)
-  }
-  numFiles = len(dirEntries)
 #+end_src
 #+begin_export latex
 We check if the reference has been specified. If so, we check if it is
@@ -186,14 +149,10 @@ interpreted parameters.
 #+begin_src go <<Create a Parameters struct>>=
   parameters := chr.Parameters{
 	  Reference:       referenceContigs,
-	  TargetDir:       *optD,
+	  QueryPaths:      flag.Args(),
 	  Threshold:       *optF,
 	  ShustrPval:      *optP,
-	  CleanSubject:    *optCleanR,
-	  CleanQuery:      *optCleanQ,
-	  PrintSegSitePos: *optS,
 	  PrintN:          *optN,
-	  PrintOneBased:   !*optZeroBased,
 	  NumThreads:      *optT,
   }
 #+end_src
@@ -214,60 +173,7 @@ We print the result. If the verbose mode is toggled, we report some
 statistics in the \ty{stderr}, the rest goes to \ty{stdout}.
 #+end_export
 #+begin_src go <<Print the results>>=
-  if *optVerb {
-	  //<<Calculate stats>>
-	  fmt.Fprintf(os.Stderr,
-		  "# Intersected sequences from %d" + 
-		  " files\n", numFiles + 1)
-	
-	  fmt.Fprintf(os.Stderr,
-		  "#  common homologous region(s): %d\n",
-		  len(isc))
-	
-	  fmt.Fprintf(os.Stderr,
-		  "#  intersection's total length: %d\n",
-		  totalLen)
-	
-	  if *optS {
-	  fmt.Fprintf(os.Stderr,
-		  "#  number of segregating sites: %d\n",
-		  numNs)
-	  }
-
-      }
   for _, seq := range(isc) {
 	  fmt.Fprintf(os.Stdout, "%s\n", seq)
   }
-#+end_src
-#+begin_export latex
-We calculate the total length of the intersection and the total number
-of segregating sites \ty{numNs} if the segregating sites are present
-in the headers.
-#+end_export
-#+begin_src go <<Calculate stats>>=
-  totalLen := 0
-  numNs := 0
-  for _, seq := range(isc) {
-	  totalLen += len(seq.Data())
-	  if *optS {
-		  //<<Calculate \ty{numNs}>>
-	  }
-  }
-#+end_src
-#+begin_export latex
-We split a header into fields, take the second field as it contains
-the total number of segregating sites, and convert it to an
-integer, which we add to \ty{numNs}.
-#+end_export
-#+begin_src go <<Calculate \ty{numNs}>>=
-  arr := strings.Fields(seq.Header())
-  n, _ := strconv.Atoi(arr[2])
-  numNs += n
-#+end_src
-#+begin_export latex
-We import \ty{strings} and \ty{strconv}.
-#+end_export
-#+begin_src go <<Imports>>=
-  "strings"
-  "strconv"
 #+end_src
