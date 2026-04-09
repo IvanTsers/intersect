@@ -1,19 +1,41 @@
-progs = intersect ref2query
+NAME = intersect
 
-all:
+# ---------- Helper scripts ----------
 
-	test -d bin || mkdir bin
-		for prog in $(progs); do \
-			make -C $$prog; \
-			cp $$prog/$$prog bin; \
-		done
+ORG2NW    := bash scripts/org2nw.sh
+PRETANGLE := awk -f scripts/preTangle.awk
+
+# ---------- Basic tangling ----------
+
+all: $(NAME).go lang_actions
+
+$(NAME).go: $(NAME).org
+	$(ORG2NW) $(NAME).org | $(PRETANGLE) | notangle -R$(NAME).go > $(NAME).go
+
+# ---------- Basic make subcommands ----------
+
+.PHONY: doc clean
 
 doc:
-	make -c doc
+	make -C doc
 
 clean:
+	rm -f $(NAME) *.go
+	make clean -C doc
 
-	for prog in $(progs) doc; do \
-		make clean -C $$prog; \
-	done
-	rm -f bin/*
+publish:
+	if mountpoint -q ~/owncloud; then \
+		cp doc/$(NAME)Doc.pdf ~/owncloud/github_docs; \
+	fi
+
+# ---------- Language actions area ----------
+
+lang_actions: $(NAME).go go.mod go.sum
+	gofmt -w $(NAME).go
+	go build $(NAME).go
+
+go.mod:
+	go mod init $(NAME).go
+
+go.sum: go.mod $(NAME).go
+	go mod tidy
